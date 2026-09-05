@@ -1,6 +1,9 @@
 """
 Tableau de bord affiché aux agents (stock ou comptabilité).
 Vue restreinte à leur site et leur module, conformément à la maquette validée.
+Le contenu (statistiques, alertes, actions rapides) dépend du rôle exact :
+un agent comptabilité n'a pas de raison de voir des actions de stock, et
+inversement.
 """
 
 from PyQt6.QtWidgets import (
@@ -9,6 +12,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt
 
 from database import Database
+from modules.comptabilite import totaux_du_jour
 
 
 class TableauBordAgent(QWidget):
@@ -38,31 +42,94 @@ class TableauBordAgent(QWidget):
         entete.addStretch()
         layout.addLayout(entete)
 
-        # Cartes de statistiques
-        cartes = QHBoxLayout()
-        cartes.addWidget(self._carte_stat("Articles en stock", self._compter_articles()))
-        cartes.addWidget(self._carte_stat("Seuils atteints", self._compter_alertes(), alerte=True))
-        layout.addLayout(cartes)
+        # Zone reconstruite à chaque rafraîchissement (après ajout d'article
+        # ou mouvement de stock), comme dans TableauBordResponsable.
+        self.zone_contenu = QVBoxLayout()
+        layout.addLayout(self.zone_contenu)
 
-        # Liste des alertes stock faible
-        titre_alertes = QLabel("Alertes stock faible")
-        titre_alertes.setStyleSheet("font-size: 13px; font-weight: bold;")
-        layout.addWidget(titre_alertes)
-
-        liste_alertes = self._construire_liste_alertes()
-        layout.addWidget(liste_alertes)
-
-        # Boutons d'action
-        actions = QHBoxLayout()
-        bouton_ajout = QPushButton("Ajouter article")
-        bouton_mouvement = QPushButton("Mouvement stock")
-        actions.addWidget(bouton_ajout)
-        actions.addWidget(bouton_mouvement)
-        layout.addLayout(actions)
+        if self.utilisateur["role"] == "agent_stock":
+            self._rafraichir_stock()
+        else:
+            self._rafraichir_comptabilite()
 
         layout.addStretch()
         self.setLayout(layout)
 
+    def _vider_zone_contenu(self):
+        while self.zone_contenu.count():
+            item = self.zone_contenu.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+            elif item.layout():
+                self._vider_layout(item.layout())
+
+    def _vider_layout(self, layout):
+        while layout.count():
+            item = layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+
+    # ------------------------------------------------------------
+    # Contenu spécifique : agent stock
+    # ------------------------------------------------------------
+    def _rafraichir_stock(self):
+        self._vider_zone_contenu()
+
+        cartes = QHBoxLayout()
+        cartes.addWidget(self._carte_stat("Articles en stock", self._compter_articles()))
+        cartes.addWidget(self._carte_stat("Seuils atteints", self._compter_alertes(), alerte=True))
+        self.zone_contenu.addLayout(cartes)
+
+        titre_alertes = QLabel("Alertes stock faible")
+        titre_alertes.setStyleSheet("font-size: 13px; font-weight: bold;")
+        self.zone_contenu.addWidget(titre_alertes)
+
+        self.zone_contenu.addWidget(self._construire_liste_alertes())
+
+        actions = QHBoxLayout()
+        bouton_ajout = QPushButton("Ajouter article")
+        bouton_ajout.clicked.connect(self._ouvrir_formulaire_ajout_article)
+        bouton_mouvement = QPushButton("Mouvement stock")
+        bouton_mouvement.clicked.connect(self._ouvrir_formulaire_mouvement_stock)
+        actions.addWidget(bouton_ajout)
+        actions.addWidget(bouton_mouvement)
+        self.zone_contenu.addLayout(actions)
+
+    def _ouvrir_formulaire_ajout_article(self):
+        from ui.formulaire_article import FormulaireArticle
+        dialogue = FormulaireArticle(self.utilisateur, article=None, parent=self)
+        if dialogue.exec():
+            self._rafraichir_stock()
+
+    def _ouvrir_formulaire_mouvement_stock(self):
+        from ui.formulaire_mouvement_stock import FormulaireMouvementStock
+        dialogue = FormulaireMouvementStock(self.utilisateur, parent=self)
+        if dialogue.exec():
+            self._rafraichir_stock()
+
+    # ------------------------------------------------------------
+    # Contenu spécifique : agent comptabilité
+    # ------------------------------------------------------------
+    def _rafraichir_comptabilite(self):
+        self._vider_zone_contenu()
+        totaux = totaux_du_jour(self.utilisateur["site_id"])
+
+        cartes = QHBoxLayout()
+        cartes.addWidget(self._carte_stat(
+            "Recettes du jour", f"{totaux['recettes']:,.0f} F".replace(",", " ")
+        ))
+        cartes.addWidget(self._carte_stat(
+            "Dépenses du jour", f"{totaux['depenses']:,.0f} F".replace(",", " "), alerte=True
+        ))
+        self.zone_contenu.addLayout(cartes)
+
+        info = QLabel("Pour saisir une recette ou une dépense, ouvrez l'onglet « Comptabilité ».")
+        info.setStyleSheet("color: gray; font-size: 12px;")
+        self.zone_contenu.addWidget(info)
+
+    # ------------------------------------------------------------
+    # Composants communs
+    # ------------------------------------------------------------
     def _carte_stat(self, titre, valeur, alerte=False):
         cadre = QFrame()
         cadre.setStyleSheet(

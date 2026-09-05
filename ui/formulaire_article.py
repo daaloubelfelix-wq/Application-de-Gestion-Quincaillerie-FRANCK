@@ -107,6 +107,7 @@ class FormulaireArticle(QDialog):
                     prix_achat=self.champ_prix_achat.value(),
                     prix_vente=self.champ_prix_vente.value(),
                     seuil_alerte=self.champ_seuil_alerte.value(),
+                    fournisseur_id=self.champ_fournisseur.currentData(),
                 )
         except ValueError as erreur:
             QMessageBox.warning(self, "Erreur de saisie", str(erreur))

@@ -62,6 +62,18 @@ class GestionUtilisateurs(QWidget):
         if utilisateur_id == self.utilisateur_connecte["id"]:
             QMessageBox.warning(self, "Action impossible", "Vous ne pouvez pas désactiver votre propre compte.")
             return
+
+        if actif_actuel:
+            reponse = QMessageBox.question(
+                self,
+                "Confirmer la désactivation",
+                "Ce compte ne pourra plus se connecter tant qu'il n'aura pas été réactivé. Continuer ?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            )
+            if reponse != QMessageBox.StandardButton.Yes:
+                return
+
         activer_desactiver(utilisateur_id, not actif_actuel)
         if not actif_actuel:
             reinitialiser_tentatives(utilisateur_id)

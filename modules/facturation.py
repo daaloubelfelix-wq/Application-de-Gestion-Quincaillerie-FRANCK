@@ -157,11 +157,25 @@ def generer_facture_pdf(chemin_fichier, numero_facture, lignes_panier, nom_vende
     return sous_total_ht, montant_tva, total_ttc
 
 
-def prochain_numero_facture():
-    """Génère un numéro de facture séquentiel du type 2026-0001."""
-    from database import Database
+# Clé arbitraire pour le verrou consultatif PostgreSQL qui sérialise
+# l'attribution des numéros de facture (voir prochain_numero_facture).
+_VERROU_NUMERO_FACTURE = 987654321
+
+
+def prochain_numero_facture(cur):
+    """
+    Génère un numéro de facture séquentiel du type 2026-0001.
+
+    Doit être appelé avec le curseur d'une transaction en cours
+    (voir Database.transaction dans modules/ventes.py). Un verrou
+    consultatif PostgreSQL empêche deux ventes simultanées d'obtenir
+    le même numéro : la deuxième transaction attend que la première
+    ait validé (ou annulé) avant de lire le dernier numéro.
+    """
+    cur.execute("SELECT pg_advisory_xact_lock(%s)", (_VERROU_NUMERO_FACTURE,))
+
     annee = datetime.now().year
-    resultat = Database.fetch_one(
+    cur.execute(
         """
         SELECT numero_facture FROM ventes
         WHERE numero_facture LIKE %s
@@ -169,6 +183,7 @@ def prochain_numero_facture():
         """,
         (f"{annee}-%",),
     )
+    resultat = cur.fetchone()
     if resultat and resultat["numero_facture"]:
         dernier_numero = int(resultat["numero_facture"].split("-")[1])
         nouveau_numero = dernier_numero + 1

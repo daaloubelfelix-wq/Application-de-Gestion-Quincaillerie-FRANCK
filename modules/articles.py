@@ -60,7 +60,7 @@ def creer_article(site_id, nom, categorie, unite, prix_achat, prix_vente,
     return article["id"]
 
 
-def modifier_article(article_id, nom, categorie, unite, prix_achat, prix_vente, seuil_alerte):
+def modifier_article(article_id, nom, categorie, unite, prix_achat, prix_vente, seuil_alerte, fournisseur_id=None):
     if not nom.strip():
         raise ValueError("Le nom de l'article est obligatoire.")
     if prix_vente <= 0:
@@ -70,10 +70,10 @@ def modifier_article(article_id, nom, categorie, unite, prix_achat, prix_vente, 
         """
         UPDATE articles
         SET nom = %s, categorie = %s, unite = %s,
-            prix_achat = %s, prix_vente = %s, seuil_alerte = %s
+            prix_achat = %s, prix_vente = %s, seuil_alerte = %s, fournisseur_id = %s
         WHERE id = %s
         """,
-        (nom.strip(), categorie, unite, prix_achat, prix_vente, seuil_alerte, article_id),
+        (nom.strip(), categorie, unite, prix_achat, prix_vente, seuil_alerte, fournisseur_id, article_id),
     )
 
 
@@ -88,27 +88,37 @@ def ajuster_stock_manuellement(article_id, type_mouvement, quantite, motif, util
     if quantite <= 0:
         raise ValueError("La quantité doit être supérieure à 0.")
 
-    article = Database.fetch_one("SELECT quantite_stock, nom FROM articles WHERE id = %s", (article_id,))
-    if article is None:
-        raise ValueError("Article introuvable.")
-
-    if type_mouvement == "sortie" and article["quantite_stock"] < quantite:
-        raise ValueError(
-            f"Stock insuffisant pour '{article['nom']}' ({article['quantite_stock']} disponibles)."
-        )
-
     variation = quantite if type_mouvement == "entree" else -quantite
-    Database.execute(
-        "UPDATE articles SET quantite_stock = quantite_stock + %s WHERE id = %s",
-        (variation, article_id),
-    )
-    Database.execute(
-        """
-        INSERT INTO mouvements_stock (article_id, type, quantite, motif, utilisateur_id)
-        VALUES (%s, %s, %s, %s, %s)
-        """,
-        (article_id, type_mouvement, quantite, motif, utilisateur_id),
-    )
+
+    with Database.transaction() as cur:
+        # Condition vérifiée par PostgreSQL au moment de l'écriture : protège
+        # contre une sortie simultanée depuis un autre poste (voir modules/ventes.py).
+        cur.execute(
+            """
+            UPDATE articles
+            SET quantite_stock = quantite_stock + %s
+            WHERE id = %s AND quantite_stock + %s >= 0
+            RETURNING nom
+            """,
+            (variation, article_id, variation),
+        )
+        resultat = cur.fetchone()
+        if resultat is None:
+            cur.execute("SELECT nom, quantite_stock FROM articles WHERE id = %s", (article_id,))
+            article = cur.fetchone()
+            if article is None:
+                raise ValueError("Article introuvable.")
+            raise ValueError(
+                f"Stock insuffisant pour '{article['nom']}' ({article['quantite_stock']} disponibles)."
+            )
+
+        cur.execute(
+            """
+            INSERT INTO mouvements_stock (article_id, type, quantite, motif, utilisateur_id)
+            VALUES (%s, %s, %s, %s, %s)
+            """,
+            (article_id, type_mouvement, quantite, motif, utilisateur_id),
+        )
 
 
 def lister_fournisseurs():
