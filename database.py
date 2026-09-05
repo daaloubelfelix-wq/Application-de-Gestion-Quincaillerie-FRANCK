@@ -13,8 +13,8 @@ import os
 import sys
 from contextlib import contextmanager
 
-import psycopg2
-import psycopg2.extras
+import psycopg
+from psycopg.rows import dict_row
 
 # Une fois empaqueté en exécutable (voir construire_exe.bat), le code tourne
 # depuis un dossier temporaire : il faut chercher config.ini à côté du .exe,
@@ -56,8 +56,8 @@ class Database:
     def get_connection(cls):
         if cls._connection is None or cls._connection.closed:
             try:
-                cls._connection = psycopg2.connect(**_charger_configuration())
-            except psycopg2.OperationalError as erreur:
+                cls._connection = psycopg.connect(row_factory=dict_row, **_charger_configuration())
+            except psycopg.OperationalError as erreur:
                 raise ConnectionError(
                     "Impossible de joindre le serveur. "
                     "Vérifiez que le poste serveur est allumé et connecté au réseau."
@@ -67,14 +67,14 @@ class Database:
     @classmethod
     def fetch_one(cls, query, params=None):
         conn = cls.get_connection()
-        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        with conn.cursor() as cur:
             cur.execute(query, params or ())
             return cur.fetchone()
 
     @classmethod
     def fetch_all(cls, query, params=None):
         conn = cls.get_connection()
-        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        with conn.cursor() as cur:
             cur.execute(query, params or ())
             return cur.fetchall()
 
@@ -100,7 +100,7 @@ class Database:
                 cur.execute("UPDATE ...", (...))
         """
         conn = cls.get_connection()
-        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur = conn.cursor()
         try:
             yield cur
             conn.commit()
