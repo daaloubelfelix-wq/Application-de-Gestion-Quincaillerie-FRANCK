@@ -3,7 +3,12 @@
 Application de bureau (Windows/Mac) pour la gestion de la quincaillerie
 à Batouri, région de l'Est, Cameroun.
 
-## Installation
+> **Installation sur les 5 postes de la boutique ?** Suivre directement
+> [`GUIDE_INSTALLATION.md`](GUIDE_INSTALLATION.md) — écrit pour un
+> déploiement complet sans connaissances techniques. Le reste de ce
+> README s'adresse plutôt à qui développe ou fabrique l'exécutable.
+
+## Installation (poste de développement)
 
 1. Installer Python 3.10 ou plus récent
 2. Installer PostgreSQL sur le poste qui servira de serveur
@@ -34,10 +39,9 @@ python creer_compte_responsable.py
 Ce script demande le nom, l'identifiant et le mot de passe, puis crée
 le compte avec un mot de passe correctement sécurisé (bcrypt).
 
-Pour créer ensuite les comptes des agents (stock et comptabilité,
-sur chacun des deux sites), une requête SQL directe est nécessaire
-pour l'instant — l'écran "Gestion des utilisateurs" permettant de le
-faire depuis l'application est encore à développer.
+Pour créer ensuite les comptes des agents (stock et comptabilité, sur
+chacun des deux sites), se connecter avec le compte responsable et utiliser
+l'onglet **Utilisateurs** dans l'application — pas besoin de requête SQL.
 
 ## Lancer l'application
 
@@ -45,16 +49,33 @@ faire depuis l'application est encore à développer.
 python main.py
 ```
 
+## Fabriquer l'exécutable à distribuer
+
+Pour ne pas avoir à installer Python sur chacun des 5 postes de la
+boutique, on fabrique une seule fois un exécutable autonome :
+
+```
+pip install -r requirements-empaquetage.txt
+```
+puis lancer `construire_exe.bat` (Windows) ou `./construire_exe.sh`
+(Mac/Linux) depuis le dossier du projet. Le résultat apparaît dans
+`dist/`. Voir [`GUIDE_INSTALLATION.md`](GUIDE_INSTALLATION.md) pour la
+suite (copie sur les 5 postes, configuration, création des comptes).
+
 ## Structure du projet
 
 ```
 quincaillerie_app/
+├── GUIDE_INSTALLATION.md          Guide pas-à-pas pour installer sur les 5 postes
 ├── main.py                       Point d'entrée, navigation par onglets selon le rôle
 ├── database.py                   Connexion au serveur PostgreSQL + config.ini
 ├── config.example.ini            Modèle de configuration (à copier en config.ini)
 ├── creer_compte_responsable.py   Script à exécuter une seule fois
 ├── creation_base_donnees.sql     Script de création des tables
-├── requirements.txt              Dépendances Python
+├── requirements.txt              Dépendances Python (usage normal)
+├── requirements-empaquetage.txt  Dépendance supplémentaire pour fabriquer l'exécutable
+├── construire_exe.bat            Fabrique l'exécutable Windows (voir plus haut)
+├── construire_exe.sh             Fabrique l'exécutable Mac/Linux
 ├── modules/
 │   ├── auth.py                   Authentification, verrouillage après 5 échecs
 │   ├── articles.py                Gestion des articles et du stock

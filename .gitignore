@@ -4,6 +4,13 @@ __pycache__/
 .venv/
 venv/
 env/
+.venv_empaquetage/
+
+# Fichiers générés par construire_exe.bat / construire_exe.sh — l'exécutable
+# lui-même se distribue directement, pas via Git.
+build/
+dist/
+*.spec
 
 # Contient l'adresse et le mot de passe réels du serveur — ne doit jamais être versionné.
 # Copier config.example.ini vers config.ini et le renseigner sur chaque poste.

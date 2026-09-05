@@ -10,12 +10,20 @@ et de devoir modifier un fichier Python sur chaque poste.
 
 import configparser
 import os
+import sys
 from contextlib import contextmanager
 
 import psycopg2
 import psycopg2.extras
 
-_DOSSIER_PROJET = os.path.dirname(os.path.abspath(__file__))
+# Une fois empaqueté en exécutable (voir construire_exe.bat), le code tourne
+# depuis un dossier temporaire : il faut chercher config.ini à côté du .exe,
+# pas à côté de ce fichier source.
+if getattr(sys, "frozen", False):
+    _DOSSIER_PROJET = os.path.dirname(sys.executable)
+else:
+    _DOSSIER_PROJET = os.path.dirname(os.path.abspath(__file__))
+
 _CHEMIN_CONFIG = os.path.join(_DOSSIER_PROJET, "config.ini")
 
 
