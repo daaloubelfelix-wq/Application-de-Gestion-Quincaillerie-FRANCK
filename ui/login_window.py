@@ -5,7 +5,7 @@ Le rôle et le site sont déterminés automatiquement en base de données.
 """
 
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox
+    QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox, QFrame
 )
 from PyQt6.QtCore import Qt
 
@@ -17,21 +17,45 @@ class LoginWindow(QWidget):
         super().__init__()
         self.on_login_success = on_login_success
         self.setWindowTitle("Ets Quincaillerie Franck — Connexion")
-        self.setFixedSize(340, 320)
+        self.setFixedSize(380, 460)
         self._construire_interface()
 
     def _construire_interface(self):
         layout = QVBoxLayout()
-        layout.setContentsMargins(30, 30, 30, 30)
-        layout.setSpacing(12)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+
+        # Bandeau d'en-tête
+        banniere = QFrame()
+        banniere.setObjectName("banniereConnexion")
+        banniere.setFixedHeight(140)
+        banniere_layout = QVBoxLayout()
+        banniere_layout.setContentsMargins(24, 0, 24, 0)
 
         titre = QLabel("Ets Quincaillerie Franck")
+        titre.setObjectName("titreConnexion")
         titre.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        titre.setStyleSheet("font-size: 16px; font-weight: bold;")
+        titre.setWordWrap(True)
 
-        sous_titre = QLabel("Connectez-vous à votre poste")
+        sous_titre = QLabel("Batouri · Gestion de quincaillerie")
+        sous_titre.setObjectName("sousTitreConnexion")
         sous_titre.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        sous_titre.setStyleSheet("color: gray; font-size: 12px;")
+
+        banniere_layout.addStretch()
+        banniere_layout.addWidget(titre)
+        banniere_layout.addWidget(sous_titre)
+        banniere_layout.addStretch()
+        banniere.setLayout(banniere_layout)
+
+        # Carte de connexion
+        carte = QFrame()
+        carte.setObjectName("carteConnexionEcran")
+        carte_layout = QVBoxLayout()
+        carte_layout.setContentsMargins(32, 32, 32, 32)
+        carte_layout.setSpacing(12)
+
+        invite = QLabel("Connectez-vous à votre poste")
+        invite.setObjectName("titreSection")
 
         self.champ_identifiant = QLineEdit()
         self.champ_identifiant.setPlaceholderText("Identifiant")
@@ -45,18 +69,22 @@ class LoginWindow(QWidget):
         bouton_connexion.clicked.connect(self._tenter_connexion)
 
         self.label_erreur = QLabel("")
-        self.label_erreur.setStyleSheet("color: red; font-size: 12px;")
+        self.label_erreur.setObjectName("texteErreur")
         self.label_erreur.setWordWrap(True)
         self.label_erreur.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        layout.addWidget(titre)
-        layout.addWidget(sous_titre)
-        layout.addSpacing(10)
-        layout.addWidget(self.champ_identifiant)
-        layout.addWidget(self.champ_mot_de_passe)
-        layout.addWidget(bouton_connexion)
-        layout.addWidget(self.label_erreur)
-        layout.addStretch()
+        carte_layout.addWidget(invite)
+        carte_layout.addSpacing(6)
+        carte_layout.addWidget(self.champ_identifiant)
+        carte_layout.addWidget(self.champ_mot_de_passe)
+        carte_layout.addSpacing(6)
+        carte_layout.addWidget(bouton_connexion)
+        carte_layout.addWidget(self.label_erreur)
+        carte_layout.addStretch()
+        carte.setLayout(carte_layout)
+
+        layout.addWidget(banniere)
+        layout.addWidget(carte, stretch=1)
 
         self.setLayout(layout)
 

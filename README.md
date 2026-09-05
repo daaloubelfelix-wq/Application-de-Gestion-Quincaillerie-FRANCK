@@ -92,7 +92,9 @@ quincaillerie_app/
 │   ├── gestion_articles.py        Liste, ajout, modification des articles
 │   ├── formulaire_article.py      Formulaire article
 │   ├── formulaire_mouvement_stock.py  Formulaire d'entrée/sortie de stock manuelle
-│   ├── point_de_vente.py          Écran de vente (panier, ticket/facture)
+│   ├── point_de_vente.py          Nouvelle commande (comptabilité) — panier, ticket/facture
+│   ├── caisse.py                  Caisse (responsable) — encaissement/annulation des commandes
+│   ├── style.qss                  Feuille de style globale de l'application
 │   ├── comptabilite.py            Écran comptabilité
 │   ├── formulaire_transaction.py  Formulaire recette/dépense manuelle
 │   ├── rapports.py                Écran rapports (responsable)
@@ -168,11 +170,26 @@ http://localhost:8000` seul donne une adresse temporaire en
 `trycloudflare.com`, valable tant que la commande tourne — pratique pour
 un premier essai, mais l'adresse change à chaque redémarrage.)*
 
+## Circuit d'une vente
+
+Reflète le fonctionnement réel de la boutique — trois personnes, trois étapes :
+
+1. **Le client choisit sa marchandise**, le magasin de stock s'assure juste
+   que les articles et les quantités disponibles sont à jour (il ne vend pas
+   directement).
+2. **La comptabilité enregistre la commande** (onglet « Nouvelle commande ») :
+   le stock est retiré à ce moment-là, et un ticket ou une facture indiquant
+   le montant à payer est imprimé.
+3. **Le client va payer à la caisse**, tenue par le responsable (onglet
+   « Caisse ») : c'est seulement à cet instant que le paiement compte dans
+   les recettes du jour. Le responsable peut aussi annuler une commande non
+   payée (le stock retiré est alors restitué).
+
 ## Navigation par rôle
 
-- **Agent stock** : Tableau de bord, Articles, Fournisseurs, Point de vente
-- **Agent comptabilité** : Tableau de bord, Comptabilité, Point de vente
-- **Responsable** : Tableau de bord (consolidé), Rapports, Fournisseurs, Utilisateurs
+- **Agent stock** : Tableau de bord, Articles, Fournisseurs
+- **Agent comptabilité** : Tableau de bord, Comptabilité, Nouvelle commande
+- **Responsable** : Tableau de bord (consolidé), Caisse, Rapports, Fournisseurs, Utilisateurs
 
 ## Ce qui est fonctionnel
 
@@ -182,12 +199,14 @@ un premier essai, mais l'adresse change à chaque redémarrage.)*
   responsable (vue consolidée avec sélecteur de site)
 - Gestion des articles avec alertes de stock faible ; mouvement de stock manuel
   (entrée/sortie) accessible depuis le tableau de bord de l'agent stock
-- Point de vente avec génération PDF au format ticket rapide OU facture
-  détaillée numérotée, TVA à 19,25% incluse — enregistrement transactionnel
-  (une vente est écrite intégralement ou pas du tout)
-- Comptabilité : les ventes créent automatiquement une recette,
+- Commande client (comptabilité) avec génération PDF au format ticket rapide
+  OU facture détaillée numérotée, TVA à 19,25% incluse — enregistrement
+  transactionnel (une commande est écrite intégralement ou pas du tout)
+- Caisse (responsable) : encaissement ou annulation des commandes en attente,
+  tous sites confondus
+- Comptabilité : les encaissements créent automatiquement une recette,
   saisie manuelle possible pour les dépenses
-- Rapports : total des ventes, marge estimée, produits les plus vendus,
+- Rapports : total des ventes payées, marge estimée, produits les plus vendus,
   filtrables par période et par site
 - Fournisseurs : fiches avec liste des articles fournis
 - Gestion des utilisateurs : création de compte, activation/désactivation
@@ -195,6 +214,8 @@ un premier essai, mais l'adresse change à chaque redémarrage.)*
 - Supervision mobile : page web (login + tableau de bord + rapports)
   réservée au responsable, servie par `api/` — voir la section dédiée
   ci-dessus pour la rendre accessible depuis Internet
+- Montants affichés en FCFA ; interface avec une feuille de style
+  cohérente (voir `ui/style.qss`)
 
 ## Corrections apportées au code initial (voir l'audit)
 

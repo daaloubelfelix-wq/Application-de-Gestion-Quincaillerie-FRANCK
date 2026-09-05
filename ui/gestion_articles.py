@@ -74,12 +74,12 @@ class GestionArticles(QWidget):
         for ligne, article in enumerate(articles):
             self.tableau.setItem(ligne, 0, QTableWidgetItem(article["nom"]))
             self.tableau.setItem(ligne, 1, QTableWidgetItem(article.get("categorie") or "—"))
-            self.tableau.setItem(ligne, 2, QTableWidgetItem(f"{article['prix_vente']:.0f} F"))
+            self.tableau.setItem(ligne, 2, QTableWidgetItem(f"{article['prix_vente']:.0f} FCFA"))
 
             item_stock = QTableWidgetItem(str(article["quantite_stock"]))
             if article["quantite_stock"] <= article["seuil_alerte"]:
-                item_stock.setBackground(QColor("#FDECEC"))
-                item_stock.setForeground(QColor("#A32D2D"))
+                item_stock.setBackground(QColor("#F4DDD0"))
+                item_stock.setForeground(QColor("#A8431C"))
             self.tableau.setItem(ligne, 3, item_stock)
 
             self.tableau.setItem(ligne, 4, QTableWidgetItem(str(article["seuil_alerte"])))

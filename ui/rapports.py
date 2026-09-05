@@ -68,11 +68,11 @@ class Rapports(QWidget):
 
     def _creer_carte(self, titre):
         cadre = QFrame()
-        cadre.setStyleSheet("background-color: #F1EFE8; border-radius: 8px; padding: 12px;")
+        cadre.setStyleSheet("background-color: #EAE5D7; border-radius: 8px; padding: 12px;")
         vlayout = QVBoxLayout()
         label_titre = QLabel(titre)
-        label_titre.setStyleSheet("font-size: 12px; color: gray;")
-        label_valeur = QLabel("0 F")
+        label_titre.setStyleSheet("font-size: 12px; color: #5B6169;")
+        label_valeur = QLabel("0 FCFA")
         label_valeur.setObjectName("valeur")
         label_valeur.setStyleSheet("font-size: 20px; font-weight: bold;")
         vlayout.addWidget(label_titre)
@@ -97,10 +97,10 @@ class Rapports(QWidget):
 
         totaux = totaux_periode(date_debut, date_fin, site_id)
         self.carte_ventes.findChild(QLabel, "valeur").setText(
-            f"{totaux['total_ventes_ttc']:,.0f} F".replace(",", " ")
+            f"{totaux['total_ventes_ttc']:,.0f} FCFA".replace(",", " ")
         )
         self.carte_marge.findChild(QLabel, "valeur").setText(
-            f"{totaux['marge_estimee']:,.0f} F".replace(",", " ")
+            f"{totaux['marge_estimee']:,.0f} FCFA".replace(",", " ")
         )
 
         produits = produits_plus_vendus(date_debut, date_fin, site_id)

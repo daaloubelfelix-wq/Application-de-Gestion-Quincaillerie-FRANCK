@@ -181,7 +181,7 @@
 
   function formaterFCFA(valeur) {
     var arrondi = Math.round(Number(valeur) || 0);
-    return arrondi.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") + " F";
+    return arrondi.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") + " FCFA";
   }
 
   function appelApi(chemin, options) {

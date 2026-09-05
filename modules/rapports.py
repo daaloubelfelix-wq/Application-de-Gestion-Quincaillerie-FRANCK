@@ -1,6 +1,11 @@
 """
 Rapports pour le responsable.
 Filtrable par site (ou tous les sites) et par période.
+
+Ne compte que les commandes réellement encaissées (statut 'payee') — une
+commande enregistrée par la comptabilité mais pas encore payée à la caisse
+n'apparaît pas dans le chiffre d'affaires, cohérent avec les recettes du
+tableau de bord (voir modules/comptabilite.py et modules/ventes.py).
 """
 
 from database import Database
@@ -18,7 +23,7 @@ def totaux_periode(date_debut, date_fin, site_id=None):
         SELECT COALESCE(SUM(total_ttc), 0) AS total_ventes,
                COALESCE(SUM(sous_total_ht), 0) AS total_ht
         FROM ventes
-        WHERE date_vente::date BETWEEN %s AND %s {condition_site}
+        WHERE statut = 'payee' AND date_vente::date BETWEEN %s AND %s {condition_site}
         """,
         params,
     )
@@ -29,7 +34,7 @@ def totaux_periode(date_debut, date_fin, site_id=None):
         FROM ventes_lignes vl
         JOIN ventes v ON v.id = vl.vente_id
         JOIN articles a ON a.id = vl.article_id
-        WHERE v.date_vente::date BETWEEN %s AND %s {condition_site}
+        WHERE v.statut = 'payee' AND v.date_vente::date BETWEEN %s AND %s {condition_site}
         """,
         params,
     )
@@ -52,7 +57,7 @@ def ventes_par_jour(date_debut, date_fin, site_id=None):
         f"""
         SELECT date_vente::date AS jour, SUM(total_ttc) AS total
         FROM ventes
-        WHERE date_vente::date BETWEEN %s AND %s {condition_site}
+        WHERE statut = 'payee' AND date_vente::date BETWEEN %s AND %s {condition_site}
         GROUP BY jour
         ORDER BY jour
         """,
@@ -74,7 +79,7 @@ def produits_plus_vendus(date_debut, date_fin, site_id=None, limite=10):
         FROM ventes_lignes vl
         JOIN ventes v ON v.id = vl.vente_id
         JOIN articles a ON a.id = vl.article_id
-        WHERE v.date_vente::date BETWEEN %s AND %s {condition_site}
+        WHERE v.statut = 'payee' AND v.date_vente::date BETWEEN %s AND %s {condition_site}
         GROUP BY a.nom
         ORDER BY quantite_vendue DESC
         LIMIT %s

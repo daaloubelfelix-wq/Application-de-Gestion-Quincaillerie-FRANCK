@@ -28,7 +28,7 @@ def calculer_totaux(lignes_panier):
 
 
 def _formater_montant(valeur):
-    return f"{valeur:,.0f} F".replace(",", " ")
+    return f"{valeur:,.0f} FCFA".replace(",", " ")
 
 
 def generer_ticket_pdf(chemin_fichier, lignes_panier, nom_caissier, site_nom):

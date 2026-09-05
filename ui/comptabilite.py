@@ -37,17 +37,17 @@ class Comptabilite(QWidget):
         layout.addLayout(entete)
 
         cartes = QHBoxLayout()
-        self.carte_recettes = self._creer_carte("Recettes du jour", "#E8F5E9", "#2E7D32")
-        self.carte_depenses = self._creer_carte("Dépenses du jour", "#FDECEC", "#A32D2D")
+        self.carte_recettes = self._creer_carte("Recettes du jour", "#DEE9DF", "#43724A")
+        self.carte_depenses = self._creer_carte("Dépenses du jour", "#F4DDD0", "#A8431C")
         cartes.addWidget(self.carte_recettes)
         cartes.addWidget(self.carte_depenses)
         layout.addLayout(cartes)
 
         self.cadre_solde = QFrame()
-        self.cadre_solde.setStyleSheet("background-color: #F1EFE8; border-radius: 8px; padding: 12px;")
+        self.cadre_solde.setStyleSheet("background-color: #EAE5D7; border-radius: 8px; padding: 12px;")
         solde_layout = QHBoxLayout()
         self.label_solde_titre = QLabel("Solde net du jour")
-        self.label_solde_valeur = QLabel("0 F")
+        self.label_solde_valeur = QLabel("0 FCFA")
         self.label_solde_valeur.setStyleSheet("font-size: 18px; font-weight: bold;")
         solde_layout.addWidget(self.label_solde_titre)
         solde_layout.addStretch()
@@ -74,7 +74,7 @@ class Comptabilite(QWidget):
         vlayout = QVBoxLayout()
         label_titre = QLabel(titre)
         label_titre.setStyleSheet(f"font-size: 12px; color: {couleur_texte};")
-        label_valeur = QLabel("0 F")
+        label_valeur = QLabel("0 FCFA")
         label_valeur.setStyleSheet(f"font-size: 20px; font-weight: bold; color: {couleur_texte};")
         label_valeur.setObjectName("valeur")
         vlayout.addWidget(label_titre)
@@ -86,12 +86,12 @@ class Comptabilite(QWidget):
         totaux = totaux_du_jour(self.utilisateur["site_id"])
 
         self.carte_recettes.findChild(QLabel, "valeur").setText(
-            f"{totaux['recettes']:,.0f} F".replace(",", " ")
+            f"{totaux['recettes']:,.0f} FCFA".replace(",", " ")
         )
         self.carte_depenses.findChild(QLabel, "valeur").setText(
-            f"{totaux['depenses']:,.0f} F".replace(",", " ")
+            f"{totaux['depenses']:,.0f} FCFA".replace(",", " ")
         )
-        self.label_solde_valeur.setText(f"{totaux['solde_net']:,.0f} F".replace(",", " "))
+        self.label_solde_valeur.setText(f"{totaux['solde_net']:,.0f} FCFA".replace(",", " "))
 
         transactions = historique_transactions(self.utilisateur["site_id"])
         self.tableau.setRowCount(len(transactions))
@@ -103,9 +103,9 @@ class Comptabilite(QWidget):
             )
 
             signe = "+" if transaction["type"] == "recette" else "-"
-            item_montant = QTableWidgetItem(f"{signe}{transaction['montant']:,.0f} F".replace(",", " "))
+            item_montant = QTableWidgetItem(f"{signe}{transaction['montant']:,.0f} FCFA".replace(",", " "))
             item_montant.setForeground(
-                QColor("#2E7D32") if transaction["type"] == "recette" else QColor("#A32D2D")
+                QColor("#43724A") if transaction["type"] == "recette" else QColor("#A8431C")
             )
             self.tableau.setItem(ligne, 3, item_montant)
 

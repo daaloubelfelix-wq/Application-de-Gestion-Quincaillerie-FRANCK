@@ -1,8 +1,12 @@
 """
-Écran du point de vente.
+Écran d'enregistrement des commandes clients (tenu par la comptabilité).
 Recherche d'articles (limitée au catalogue du site de l'utilisateur),
 panier, calcul automatique de la TVA, et choix entre ticket rapide
-ou facture détaillée au moment de l'encaissement.
+ou facture détaillée.
+
+Cet écran ne prend PAS le paiement : il enregistre la commande (le stock
+est retiré immédiatement) et imprime le montant à payer. Le client va
+ensuite payer à la caisse (voir ui/caisse.py, tenu par le responsable).
 """
 
 import os
@@ -14,7 +18,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt
 
-from modules.ventes import enregistrer_vente, rechercher_articles
+from modules.ventes import enregistrer_commande, rechercher_articles
 from modules.facturation import calculer_totaux, generer_ticket_pdf, generer_facture_pdf
 
 
@@ -33,9 +37,13 @@ class PointDeVente(QWidget):
         layout.setContentsMargins(24, 24, 24, 24)
         layout.setSpacing(12)
 
-        titre = QLabel(f"Point de vente · {self.utilisateur['site_nom']}")
-        titre.setStyleSheet("font-size: 15px; font-weight: bold;")
+        titre = QLabel(f"Nouvelle commande · {self.utilisateur['site_nom']}")
+        titre.setObjectName("titreEcran")
         layout.addWidget(titre)
+
+        sous_titre = QLabel("Le client paiera à la caisse une fois la commande enregistrée.")
+        sous_titre.setObjectName("texteAttenue")
+        layout.addWidget(sous_titre)
 
         # Barre de recherche
         self.champ_recherche = QLineEdit()
@@ -51,28 +59,29 @@ class PointDeVente(QWidget):
 
         # Panier
         titre_panier = QLabel("Panier")
-        titre_panier.setStyleSheet("font-size: 13px; font-weight: bold;")
+        titre_panier.setObjectName("titreSection")
         layout.addWidget(titre_panier)
 
         self.liste_panier = QListWidget()
         layout.addWidget(self.liste_panier)
 
         bouton_retirer = QPushButton("Retirer l'article sélectionné")
+        bouton_retirer.setProperty("secondaire", True)
         bouton_retirer.clicked.connect(self._retirer_du_panier)
         layout.addWidget(bouton_retirer)
 
         # Récapitulatif des totaux
         self.cadre_totaux = QFrame()
-        self.cadre_totaux.setStyleSheet("background-color: #F1EFE8; border-radius: 8px; padding: 12px;")
+        self.cadre_totaux.setObjectName("carteTotaux")
         self._construire_zone_totaux()
         layout.addWidget(self.cadre_totaux)
 
-        # Boutons d'encaissement
+        # Boutons d'enregistrement de la commande
         actions = QHBoxLayout()
-        bouton_ticket = QPushButton("Encaisser — Ticket rapide")
-        bouton_ticket.clicked.connect(lambda: self._encaisser("ticket"))
-        bouton_facture = QPushButton("Encaisser — Facture détaillée")
-        bouton_facture.clicked.connect(lambda: self._encaisser("facture"))
+        bouton_ticket = QPushButton("Enregistrer — Ticket rapide")
+        bouton_ticket.clicked.connect(lambda: self._enregistrer_commande("ticket"))
+        bouton_facture = QPushButton("Enregistrer — Facture détaillée")
+        bouton_facture.clicked.connect(lambda: self._enregistrer_commande("facture"))
         actions.addWidget(bouton_ticket)
         actions.addWidget(bouton_facture)
         layout.addLayout(actions)
@@ -81,10 +90,10 @@ class PointDeVente(QWidget):
 
     def _construire_zone_totaux(self):
         vlayout = QVBoxLayout()
-        self.label_sous_total = QLabel("Sous-total HT : 0 F")
-        self.label_tva = QLabel("TVA (19,25%) : 0 F")
-        self.label_total = QLabel("Total TTC : 0 F")
-        self.label_total.setStyleSheet("font-size: 16px; font-weight: bold;")
+        self.label_sous_total = QLabel("Sous-total HT : 0 FCFA")
+        self.label_tva = QLabel("TVA (19,25%) : 0 FCFA")
+        self.label_total = QLabel("Total à payer à la caisse : 0 FCFA")
+        self.label_total.setObjectName("totalMisEnValeur")
         vlayout.addWidget(self.label_sous_total)
         vlayout.addWidget(self.label_tva)
         vlayout.addWidget(self.label_total)
@@ -98,7 +107,7 @@ class PointDeVente(QWidget):
         if len(texte.strip()) < 2:
             return
         for article in rechercher_articles(self.utilisateur["site_id"], texte.strip()):
-            libelle = f"{article['nom']} — {article['prix_vente']:.0f} F ({article['quantite_stock']} en stock)"
+            libelle = f"{article['nom']} — {article['prix_vente']:.0f} FCFA ({article['quantite_stock']} en stock)"
             item = QListWidgetItem(libelle)
             item.setData(Qt.ItemDataRole.UserRole, article)
             self.liste_resultats.addItem(item)
@@ -139,7 +148,7 @@ class PointDeVente(QWidget):
         self.liste_panier.clear()
         for ligne in self.panier:
             total_ligne = ligne["quantite"] * ligne["prix_unitaire"]
-            texte = f"{ligne['nom']} — {ligne['quantite']} x {ligne['prix_unitaire']:.0f} F = {total_ligne:.0f} F"
+            texte = f"{ligne['nom']} — {ligne['quantite']} x {ligne['prix_unitaire']:.0f} FCFA = {total_ligne:.0f} FCFA"
             self.liste_panier.addItem(texte)
 
         if self.panier:
@@ -147,32 +156,33 @@ class PointDeVente(QWidget):
         else:
             sous_total, tva, total = 0, 0, 0
 
-        self.label_sous_total.setText(f"Sous-total HT : {sous_total:,.0f} F".replace(",", " "))
-        self.label_tva.setText(f"TVA (19,25%) : {tva:,.0f} F".replace(",", " "))
-        self.label_total.setText(f"Total TTC : {total:,.0f} F".replace(",", " "))
+        self.label_sous_total.setText(f"Sous-total HT : {sous_total:,.0f} FCFA".replace(",", " "))
+        self.label_tva.setText(f"TVA (19,25%) : {tva:,.0f} FCFA".replace(",", " "))
+        self.label_total.setText(f"Total à payer à la caisse : {total:,.0f} FCFA".replace(",", " "))
 
     # ------------------------------------------------------------
-    # Encaissement
+    # Enregistrement de la commande (pas de paiement à cette étape)
     # ------------------------------------------------------------
-    def _encaisser(self, type_document):
+    def _enregistrer_commande(self, type_document):
         if not self.panier:
-            QMessageBox.warning(self, "Panier vide", "Ajoutez au moins un article avant d'encaisser.")
+            QMessageBox.warning(self, "Panier vide", "Ajoutez au moins un article avant d'enregistrer.")
             return
 
         try:
-            resultat_vente = enregistrer_vente(self.utilisateur, self.panier, type_document)
+            resultat = enregistrer_commande(self.utilisateur, self.panier, type_document)
         except ValueError as erreur:
-            QMessageBox.critical(self, "Impossible d'encaisser", str(erreur))
+            QMessageBox.critical(self, "Impossible d'enregistrer la commande", str(erreur))
             return
 
-        chemin_pdf = self._generer_pdf(resultat_vente, type_document)
+        chemin_pdf = self._generer_pdf(resultat, type_document)
 
-        message = "Vente enregistrée avec succès."
-        if resultat_vente.get("numero_facture"):
-            message += f"\nFacture n° {resultat_vente['numero_facture']}"
+        message = "Commande enregistrée."
+        if resultat.get("numero_facture"):
+            message += f"\nFacture n° {resultat['numero_facture']}"
+        message += f"\nMontant à payer à la caisse : {resultat['total_ttc']:,.0f} FCFA".replace(",", " ")
         message += f"\nDocument généré : {chemin_pdf}"
 
-        QMessageBox.information(self, "Vente terminée", message)
+        QMessageBox.information(self, "Commande enregistrée", message)
 
         self.panier = []
         self._rafraichir_panier()

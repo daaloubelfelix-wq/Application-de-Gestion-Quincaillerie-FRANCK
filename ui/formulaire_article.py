@@ -33,11 +33,11 @@ class FormulaireArticle(QDialog):
 
         self.champ_prix_achat = QDoubleSpinBox()
         self.champ_prix_achat.setMaximum(100_000_000)
-        self.champ_prix_achat.setSuffix(" F")
+        self.champ_prix_achat.setSuffix(" FCFA")
 
         self.champ_prix_vente = QDoubleSpinBox()
         self.champ_prix_vente.setMaximum(100_000_000)
-        self.champ_prix_vente.setSuffix(" F")
+        self.champ_prix_vente.setSuffix(" FCFA")
 
         self.champ_seuil_alerte = QSpinBox()
         self.champ_seuil_alerte.setMaximum(100_000)

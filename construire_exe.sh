@@ -15,7 +15,7 @@ pip install --upgrade pip
 pip install -r requirements.txt
 pip install -r requirements-empaquetage.txt
 
-pyinstaller --noconfirm --windowed --onefile --name QuincaillerieFranck main.py
+pyinstaller --noconfirm --windowed --onefile --name QuincaillerieFranck --add-data "ui/style.qss:ui" main.py
 
 echo ""
 echo "============================================================"

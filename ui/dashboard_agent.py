@@ -35,7 +35,7 @@ class TableauBordAgent(QWidget):
             f"{self.utilisateur['site_nom']} · "
             f"{'Agent stock' if self.utilisateur['role'] == 'agent_stock' else 'Agent comptabilité'}"
         )
-        site_role.setStyleSheet("color: gray; font-size: 12px;")
+        site_role.setStyleSheet("color: #5B6169; font-size: 12px;")
         infos.addWidget(nom)
         infos.addWidget(site_role)
         entete.addLayout(infos)
@@ -116,15 +116,15 @@ class TableauBordAgent(QWidget):
 
         cartes = QHBoxLayout()
         cartes.addWidget(self._carte_stat(
-            "Recettes du jour", f"{totaux['recettes']:,.0f} F".replace(",", " ")
+            "Recettes du jour", f"{totaux['recettes']:,.0f} FCFA".replace(",", " ")
         ))
         cartes.addWidget(self._carte_stat(
-            "Dépenses du jour", f"{totaux['depenses']:,.0f} F".replace(",", " "), alerte=True
+            "Dépenses du jour", f"{totaux['depenses']:,.0f} FCFA".replace(",", " "), alerte=True
         ))
         self.zone_contenu.addLayout(cartes)
 
         info = QLabel("Pour saisir une recette ou une dépense, ouvrez l'onglet « Comptabilité ».")
-        info.setStyleSheet("color: gray; font-size: 12px;")
+        info.setStyleSheet("color: #5B6169; font-size: 12px;")
         self.zone_contenu.addWidget(info)
 
     # ------------------------------------------------------------
@@ -133,12 +133,12 @@ class TableauBordAgent(QWidget):
     def _carte_stat(self, titre, valeur, alerte=False):
         cadre = QFrame()
         cadre.setStyleSheet(
-            f"background-color: {'#FFF3E0' if alerte else '#F1EFE8'}; "
+            f"background-color: {'#F3E2B8' if alerte else '#EAE5D7'}; "
             "border-radius: 8px; padding: 12px;"
         )
         vlayout = QVBoxLayout()
         label_titre = QLabel(titre)
-        label_titre.setStyleSheet("font-size: 12px; color: gray;")
+        label_titre.setStyleSheet("font-size: 12px; color: #5B6169;")
         label_valeur = QLabel(str(valeur))
         label_valeur.setStyleSheet("font-size: 22px; font-weight: bold;")
         vlayout.addWidget(label_titre)
@@ -148,7 +148,7 @@ class TableauBordAgent(QWidget):
 
     def _construire_liste_alertes(self):
         cadre = QFrame()
-        cadre.setStyleSheet("border: 1px solid #D3D1C7; border-radius: 8px;")
+        cadre.setStyleSheet("border: 1px solid #DDD7C9; border-radius: 8px;")
         vlayout = QVBoxLayout()
         vlayout.setSpacing(0)
 
@@ -164,14 +164,14 @@ class TableauBordAgent(QWidget):
 
         if not articles_alerte:
             label_vide = QLabel("Aucune alerte de stock pour le moment.")
-            label_vide.setStyleSheet("padding: 10px; color: gray; font-size: 13px;")
+            label_vide.setStyleSheet("padding: 10px; color: #5B6169; font-size: 13px;")
             vlayout.addWidget(label_vide)
         else:
             for article in articles_alerte:
                 ligne = QHBoxLayout()
                 ligne.addWidget(QLabel(article["nom"]))
                 quantite_label = QLabel(f"{article['quantite_stock']} restants")
-                quantite_label.setStyleSheet("color: #A32D2D;")
+                quantite_label.setStyleSheet("color: #A8431C;")
                 quantite_label.setAlignment(Qt.AlignmentFlag.AlignRight)
                 ligne.addWidget(quantite_label)
                 conteneur_ligne = QWidget()

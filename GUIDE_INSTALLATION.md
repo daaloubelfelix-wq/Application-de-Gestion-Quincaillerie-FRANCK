@@ -114,9 +114,12 @@ Récapitulatif à remplir pendant l'installation :
 
 - [ ] Les 5 postes ouvrent l'application et affichent l'écran de connexion
 - [ ] Chaque personne peut se connecter avec son propre identifiant
-- [ ] Chacune voit bien les onglets correspondant à son rôle (voir README)
-- [ ] Une vente test au point de vente diminue bien le stock (visible
-      depuis un autre poste après actualisation)
+- [ ] Chacune voit bien les onglets correspondant à son rôle (voir README,
+      section « Circuit d'une vente » et « Navigation par rôle »)
+- [ ] Une commande test enregistrée par la comptabilité diminue bien le
+      stock (visible depuis un autre poste après actualisation)
+- [ ] Cette commande apparaît dans l'onglet **Caisse** du responsable, qui
+      peut l'encaisser — les recettes du jour n'augmentent qu'à ce moment-là
 - [ ] Le responsable voit les ventes des deux sites dans son tableau de bord
 
 ## Supervision mobile (optionnel)

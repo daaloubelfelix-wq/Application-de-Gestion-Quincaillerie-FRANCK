@@ -28,7 +28,7 @@ class FormulaireTransaction(QDialog):
 
         self.champ_montant = QDoubleSpinBox()
         self.champ_montant.setMaximum(100_000_000)
-        self.champ_montant.setSuffix(" F")
+        self.champ_montant.setSuffix(" FCFA")
 
         self.champ_description = QLineEdit()
         self.champ_description.setPlaceholderText("ex : Achat fournitures bureau")

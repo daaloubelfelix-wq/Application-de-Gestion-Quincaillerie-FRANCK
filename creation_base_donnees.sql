@@ -86,6 +86,13 @@ CREATE INDEX idx_mouvements_date ON mouvements_stock(date_mouvement);
 -- Table : ventes
 -- Une vente peut être imprimée en ticket rapide ou en facture détaillée.
 -- numero_facture n'est rempli que pour les factures détaillées.
+--
+-- Circuit réel de la boutique : la comptabilité enregistre la commande
+-- du client (statut 'en_attente', le stock est retiré immédiatement) ;
+-- le client va ensuite payer à la caisse, tenue par le responsable, qui
+-- encaisse (statut passe à 'payee' — c'est seulement à ce moment que la
+-- vente compte dans les recettes). Une commande non payée peut être
+-- annulée (statut 'annulee'), ce qui restitue le stock.
 -- ------------------------------------------------------------
 CREATE TABLE ventes (
     id SERIAL PRIMARY KEY,
@@ -93,15 +100,19 @@ CREATE TABLE ventes (
     utilisateur_id INTEGER NOT NULL REFERENCES utilisateurs(id),
     type_document VARCHAR(20) NOT NULL DEFAULT 'ticket' CHECK (type_document IN ('ticket', 'facture')),
     numero_facture VARCHAR(30) UNIQUE,        -- ex : 2026-0842, rempli si type_document = 'facture'
+    statut VARCHAR(20) NOT NULL DEFAULT 'en_attente' CHECK (statut IN ('en_attente', 'payee', 'annulee')),
+    utilisateur_caisse_id INTEGER REFERENCES utilisateurs(id),  -- qui a encaissé (rempli à l'encaissement)
     sous_total_ht NUMERIC(12,2) NOT NULL,
     taux_tva NUMERIC(5,2) NOT NULL DEFAULT 19.25,
     montant_tva NUMERIC(12,2) NOT NULL,
     total_ttc NUMERIC(12,2) NOT NULL,
-    date_vente TIMESTAMP NOT NULL DEFAULT NOW()
+    date_vente TIMESTAMP NOT NULL DEFAULT NOW(),
+    date_encaissement TIMESTAMP
 );
 
 CREATE INDEX idx_ventes_site ON ventes(site_id);
 CREATE INDEX idx_ventes_date ON ventes(date_vente);
+CREATE INDEX idx_ventes_statut ON ventes(statut);
 
 -- ------------------------------------------------------------
 -- Table : ventes_lignes

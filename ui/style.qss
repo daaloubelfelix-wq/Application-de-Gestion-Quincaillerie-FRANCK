@@ -1,0 +1,154 @@
+/*
+  Feuille de style de l'application — appliquée globalement (voir main.py).
+  Palette industrielle : fond papier chaud, acier pour la structure,
+  ambre pour l'action principale — cohérente avec les documents du projet.
+*/
+
+* {
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    font-size: 13px;
+    color: #22262B;
+}
+
+QWidget {
+    background-color: #F3F1EC;
+}
+
+/* ---------- Boutons ---------- */
+QPushButton {
+    background-color: #B8710F;
+    color: #FFFFFF;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-weight: 600;
+}
+QPushButton:hover {
+    background-color: #A3620C;
+}
+QPushButton:pressed {
+    background-color: #8C540A;
+}
+QPushButton:disabled {
+    background-color: #D9D2C2;
+    color: #8A8577;
+}
+
+/* Bouton secondaire (contour, sans fond plein) — voir setProperty("secondaire", True) */
+QPushButton[secondaire="true"] {
+    background-color: #FBFAF7;
+    color: #3D5066;
+    border: 1px solid #C7BFAB;
+}
+QPushButton[secondaire="true"]:hover {
+    background-color: #EFEAE0;
+}
+
+/* ---------- Champs de saisie ---------- */
+QLineEdit, QComboBox, QSpinBox, QDoubleSpinBox {
+    background-color: #FFFFFF;
+    border: 1px solid #DDD7C9;
+    border-radius: 6px;
+    padding: 6px 10px;
+    selection-background-color: #B8710F;
+}
+QLineEdit:focus, QComboBox:focus, QSpinBox:focus, QDoubleSpinBox:focus {
+    border: 1px solid #B8710F;
+}
+
+/* ---------- Onglets ---------- */
+QTabWidget::pane {
+    border-top: 1px solid #DDD7C9;
+    background-color: #F3F1EC;
+}
+QTabBar::tab {
+    background-color: #EAE5D7;
+    color: #5B6169;
+    padding: 9px 20px;
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+    margin-right: 2px;
+}
+QTabBar::tab:selected {
+    background-color: #F3F1EC;
+    color: #22262B;
+    font-weight: 600;
+    border-bottom: 2px solid #B8710F;
+}
+QTabBar::tab:hover:!selected {
+    background-color: #F1EBDD;
+}
+
+/* ---------- Tableaux et listes ---------- */
+QTableWidget, QListWidget {
+    background-color: #FBFAF7;
+    border: 1px solid #DDD7C9;
+    border-radius: 6px;
+    gridline-color: #EDE8DB;
+}
+QHeaderView::section {
+    background-color: #E4E9EE;
+    color: #3D5066;
+    padding: 6px 8px;
+    border: none;
+    font-weight: 600;
+}
+QTableWidget::item:selected, QListWidget::item:selected {
+    background-color: #F3E2B8;
+    color: #22262B;
+}
+
+/* ---------- Rôles sémantiques (voir objectName sur les widgets) ---------- */
+QLabel#titreEcran {
+    font-size: 17px;
+    font-weight: 700;
+    color: #22262B;
+}
+QLabel#titreSection {
+    font-size: 13px;
+    font-weight: 700;
+    color: #3D5066;
+}
+QLabel#texteAttenue {
+    color: #5B6169;
+    font-size: 12px;
+}
+QLabel#totalMisEnValeur {
+    font-size: 17px;
+    font-weight: 700;
+    color: #22262B;
+}
+QFrame#carteTotaux {
+    background-color: #EAE5D7;
+    border-radius: 8px;
+    padding: 12px;
+}
+
+QDialog {
+    background-color: #F3F1EC;
+}
+
+/* ---------- Écran de connexion ---------- */
+QFrame#banniereConnexion {
+    background-color: #3D5066;
+}
+QLabel#titreConnexion {
+    color: #FFFFFF;
+    font-size: 20px;
+    font-weight: 700;
+}
+QLabel#sousTitreConnexion {
+    color: #C7D3DD;
+    font-size: 12px;
+}
+QFrame#carteConnexionEcran {
+    background-color: #F3F1EC;
+}
+QLabel#texteErreur {
+    color: #A8431C;
+    font-size: 12px;
+}
+QFrame#carteConnexionEcran QPushButton {
+    padding: 10px 16px;
+    font-size: 13px;
+}
