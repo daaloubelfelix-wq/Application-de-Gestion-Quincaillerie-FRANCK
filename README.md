@@ -64,22 +64,88 @@ quincaillerie_app/
 │   ├── rapports.py                Totaux par période, produits les plus vendus
 │   ├── fournisseurs.py            Gestion des fournisseurs
 │   └── utilisateurs.py            Création et activation/désactivation des comptes
-└── ui/
-    ├── login_window.py            Écran de connexion
-    ├── dashboard_agent.py         Tableau de bord agent (vue par site et par rôle)
-    ├── dashboard_responsable.py   Tableau de bord responsable (vue consolidée)
-    ├── gestion_articles.py        Liste, ajout, modification des articles
-    ├── formulaire_article.py      Formulaire article
-    ├── formulaire_mouvement_stock.py  Formulaire d'entrée/sortie de stock manuelle
-    ├── point_de_vente.py          Écran de vente (panier, ticket/facture)
-    ├── comptabilite.py            Écran comptabilité
-    ├── formulaire_transaction.py  Formulaire recette/dépense manuelle
-    ├── rapports.py                Écran rapports (responsable)
-    ├── gestion_fournisseurs.py    Liste et fiches fournisseurs
-    ├── formulaire_fournisseur.py  Formulaire fournisseur
-    ├── gestion_utilisateurs.py    Liste des comptes, activation/désactivation
-    └── formulaire_utilisateur.py  Formulaire de création de compte
+├── ui/
+│   ├── login_window.py            Écran de connexion
+│   ├── dashboard_agent.py         Tableau de bord agent (vue par site et par rôle)
+│   ├── dashboard_responsable.py   Tableau de bord responsable (vue consolidée)
+│   ├── gestion_articles.py        Liste, ajout, modification des articles
+│   ├── formulaire_article.py      Formulaire article
+│   ├── formulaire_mouvement_stock.py  Formulaire d'entrée/sortie de stock manuelle
+│   ├── point_de_vente.py          Écran de vente (panier, ticket/facture)
+│   ├── comptabilite.py            Écran comptabilité
+│   ├── formulaire_transaction.py  Formulaire recette/dépense manuelle
+│   ├── rapports.py                Écran rapports (responsable)
+│   ├── gestion_fournisseurs.py    Liste et fiches fournisseurs
+│   ├── formulaire_fournisseur.py  Formulaire fournisseur
+│   ├── gestion_utilisateurs.py    Liste des comptes, activation/désactivation
+│   └── formulaire_utilisateur.py  Formulaire de création de compte
+└── api/                           Supervision mobile du responsable (lecture seule)
+    ├── main.py                    Serveur FastAPI, sert aussi la page web mobile
+    ├── routes.py                  Endpoints /api/connexion, /tableau-de-bord, /rapports…
+    ├── securite.py                Jetons de session (JWT), réservés au rôle responsable
+    └── static/index.html          Page web mobile (login + tableau de bord)
 ```
+
+## Supervision mobile (responsable)
+
+Le responsable peut consulter les recettes/dépenses du jour, les alertes de
+stock et les rapports depuis son téléphone, où qu'il soit — via une page web
+mobile (pas d'application à installer). Cette page est servie par un petit
+serveur (`api/`) qui tourne sur le même poste que PostgreSQL et lit la même
+base de données, en lecture seule.
+
+### 1. Démarrer le serveur mobile
+
+Sur le poste serveur (celui qui héberge déjà PostgreSQL), après avoir
+installé les dépendances (`pip install -r requirements.txt`) et renseigné
+la section `[api]` de `config.ini` (voir `config.example.ini` — une vraie
+clé secrète, générée avec `python -c "import secrets; print(secrets.token_hex(32))"`) :
+
+```
+uvicorn api.main:app --host 0.0.0.0 --port 8000
+```
+
+À ce stade, la page est déjà consultable depuis un téléphone connecté au
+**même réseau Wi-Fi** que la boutique, à l'adresse `http://<IP du poste
+serveur>:8000`. Pour un usage quotidien, il est préférable de lancer cette
+commande comme service qui démarre automatiquement avec le PC (tâche
+planifiée Windows, ou service `systemd` sous Linux) plutôt qu'à la main.
+
+Seuls les comptes avec le rôle **responsable** peuvent se connecter à cette
+page — un identifiant d'agent stock ou comptabilité est refusé, même avec
+le bon mot de passe.
+
+### 2. Rendre la page accessible depuis l'extérieur (Internet)
+
+Pour que le responsable y accède aussi hors du réseau de la boutique, on
+utilise un **tunnel Cloudflare** (`cloudflared`) : un petit programme
+installé sur le poste serveur qui ouvre une connexion sortante chiffrée
+vers Cloudflare et expose la page sur une adresse Internet stable, sans
+toucher à la box Internet (pas d'ouverture de port) et sans coût.
+
+1. Créer un compte Cloudflare gratuit et y ajouter un nom de domaine (un
+   domaine peu coûteux suffit, ex. `quincaillerie-franck.com`) — nécessaire
+   pour obtenir une adresse stable plutôt qu'une adresse temporaire.
+2. Installer `cloudflared` sur le poste serveur (voir la documentation
+   Cloudflare Tunnel pour Windows/Mac/Linux).
+3. Créer le tunnel et le relier au serveur local :
+   ```
+   cloudflared tunnel login
+   cloudflared tunnel create quincaillerie-franck
+   cloudflared tunnel route dns quincaillerie-franck suivi.quincaillerie-franck.com
+   cloudflared tunnel run --url http://localhost:8000 quincaillerie-franck
+   ```
+4. Le responsable ouvre alors `https://suivi.quincaillerie-franck.com`
+   depuis son téléphone, où qu'il soit, et peut ajouter la page à son
+   écran d'accueil comme un raccourci.
+
+Comme pour le serveur mobile, `cloudflared tunnel run` doit rester actif en
+permanence — à lancer comme service au démarrage du poste serveur.
+
+*(Pour tester rapidement sans domaine, `cloudflared tunnel --url
+http://localhost:8000` seul donne une adresse temporaire en
+`trycloudflare.com`, valable tant que la commande tourne — pratique pour
+un premier essai, mais l'adresse change à chaque redémarrage.)*
 
 ## Navigation par rôle
 
@@ -105,6 +171,9 @@ quincaillerie_app/
 - Fournisseurs : fiches avec liste des articles fournis
 - Gestion des utilisateurs : création de compte, activation/désactivation
   (avec confirmation), déverrouillage automatique à la réactivation
+- Supervision mobile : page web (login + tableau de bord + rapports)
+  réservée au responsable, servie par `api/` — voir la section dédiée
+  ci-dessus pour la rendre accessible depuis Internet
 
 ## Corrections apportées au code initial (voir l'audit)
 
@@ -129,6 +198,7 @@ quincaillerie_app/
   à mettre en place via une tâche planifiée `pg_dump` sur le serveur)
 - Écran de consultation de l'historique des mouvements de stock
   (les données existent déjà en base, dans `mouvements_stock`)
-- Supervision mobile pour le responsable (application ou tableau de bord
-  web à distance) — aucun code écrit pour l'instant, architecture à définir
+- Mise en place effective du tunnel Cloudflare sur le poste serveur réel
+  (domaine, `cloudflared` en service permanent) — la partie logicielle
+  (API + page mobile) est prête, il reste l'installation sur place
 

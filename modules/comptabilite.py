@@ -26,22 +26,29 @@ def saisir_transaction(utilisateur, type_transaction, montant, description):
     )
 
 
-def totaux_du_jour(site_id):
+def totaux_du_jour(site_id=None):
+    """site_id=None agrège les deux sites (utilisé par le tableau de bord mobile du responsable)."""
     aujourd_hui = date.today()
 
+    condition_site = ""
+    params = [aujourd_hui]
+    if site_id is not None:
+        condition_site = "AND site_id = %s"
+        params.append(site_id)
+
     recettes = Database.fetch_one(
-        """
+        f"""
         SELECT COALESCE(SUM(montant), 0) AS total FROM transactions
-        WHERE site_id = %s AND type = 'recette' AND date_transaction::date = %s
+        WHERE type = 'recette' AND date_transaction::date = %s {condition_site}
         """,
-        (site_id, aujourd_hui),
+        params,
     )
     depenses = Database.fetch_one(
-        """
+        f"""
         SELECT COALESCE(SUM(montant), 0) AS total FROM transactions
-        WHERE site_id = %s AND type = 'depense' AND date_transaction::date = %s
+        WHERE type = 'depense' AND date_transaction::date = %s {condition_site}
         """,
-        (site_id, aujourd_hui),
+        params,
     )
 
     return {

@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Quincaillerie Franck — Supervision</title>
+<style>
+  :root{
+    --paper:#f3f1ec; --paper-raised:#ffffff; --ink:#22262b; --ink-soft:#5b6169;
+    --line:#ddd7c9; --steel:#3d5066; --amber:#b8710f; --amber-soft:#f3e2b8;
+    --rust:#a8431c; --rust-soft:#f4ddd0; --moss:#43724a; --moss-soft:#dee9df;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --paper:#1b1e22; --paper-raised:#23272c; --ink:#eae6db; --ink-soft:#a4abb3;
+      --line:#383d43; --steel:#93aec9; --amber:#e3a53f; --amber-soft:#3a2e15;
+      --rust:#dd8258; --rust-soft:#3a241c; --moss:#84bb88; --moss-soft:#213326;
+    }
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:-apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size:16px; line-height:1.5; padding-bottom:2rem;
+  }
+  [hidden]{display:none !important;}
+  h1,h2{margin:0; font-weight:700;}
+  p{margin:0;}
+
+  /* --- Connexion --- */
+  #ecran-connexion{
+    min-height:100vh; display:flex; flex-direction:column; justify-content:center;
+    align-items:center; padding:1.5rem;
+  }
+  .carte-connexion{
+    background:var(--paper-raised); border:1px solid var(--line); border-radius:10px;
+    padding:2rem 1.5rem; width:100%; max-width:22rem;
+  }
+  .carte-connexion h1{font-size:1.3rem; text-align:center; margin-bottom:.2rem;}
+  .carte-connexion .sous{color:var(--ink-soft); font-size:.85rem; text-align:center; margin-bottom:1.4rem;}
+  label{display:block; font-size:.8rem; color:var(--ink-soft); margin:.8rem 0 .3rem;}
+  input, select{
+    width:100%; padding:.65rem .8rem; border:1px solid var(--line); border-radius:6px;
+    background:var(--paper); color:var(--ink); font-size:1rem;
+  }
+  button{
+    font-family:inherit; font-size:.95rem; font-weight:600; border:none; border-radius:6px;
+    padding:.7rem 1rem; cursor:pointer;
+  }
+  .bouton-principal{background:var(--amber); color:#fff; width:100%; margin-top:1.2rem;}
+  .bouton-principal:disabled{opacity:.6;}
+  .bouton-secondaire{background:transparent; color:var(--ink-soft); border:1px solid var(--line);}
+  .message-erreur{
+    background:var(--rust-soft); color:var(--rust); font-size:.85rem;
+    padding:.6rem .8rem; border-radius:6px; margin-top:1rem;
+  }
+
+  /* --- Tableau de bord --- */
+  #ecran-dashboard{max-width:32rem; margin:0 auto; padding:0 1rem;}
+  header.entete{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:1.2rem 0; border-bottom:1px solid var(--line); margin-bottom:1rem;
+  }
+  header.entete h1{font-size:1.1rem;}
+  header.entete p{font-size:.75rem; color:var(--ink-soft);}
+
+  .selecteur-site{display:flex; gap:.5rem; overflow-x:auto; padding-bottom:.3rem; margin-bottom:1rem;}
+  .puce-site{
+    flex:0 0 auto; padding:.4rem .9rem; border-radius:999px; border:1px solid var(--line);
+    background:var(--paper-raised); color:var(--ink-soft); font-size:.82rem; white-space:nowrap;
+  }
+  .puce-site.actif{background:var(--steel); border-color:var(--steel); color:#fff;}
+
+  .grille-cartes{display:grid; grid-template-columns:1fr 1fr; gap:.7rem; margin-bottom:1.2rem;}
+  .grille-cartes.trois{grid-template-columns:1fr 1fr 1fr;}
+  .carte-stat{background:var(--paper-raised); border:1px solid var(--line); border-radius:8px; padding:.8rem .9rem;}
+  .carte-stat .titre{font-size:.72rem; color:var(--ink-soft); margin-bottom:.3rem;}
+  .carte-stat .valeur{font-size:1.15rem; font-weight:700; font-variant-numeric:tabular-nums;}
+  .carte-stat.alerte .valeur{color:var(--rust);}
+  .carte-stat.positif .valeur{color:var(--moss);}
+
+  section.bloc{margin-bottom:1.6rem;}
+  section.bloc h2{font-size:.95rem; margin-bottom:.6rem;}
+
+  .liste{background:var(--paper-raised); border:1px solid var(--line); border-radius:8px; overflow:hidden;}
+  .ligne-liste{
+    display:flex; justify-content:space-between; gap:.6rem; padding:.65rem .9rem;
+    border-bottom:1px solid var(--line); font-size:.88rem;
+  }
+  .ligne-liste:last-child{border-bottom:none;}
+  .ligne-liste .principal{font-weight:600;}
+  .ligne-liste .accessoire{color:var(--ink-soft); font-size:.78rem;}
+  .ligne-liste .droite{text-align:right; white-space:nowrap;}
+  .vide{padding:1rem; text-align:center; color:var(--ink-soft); font-size:.85rem;}
+
+  .onglets-periode{display:flex; gap:.4rem; margin-bottom:.8rem;}
+  .onglets-periode button{
+    flex:1; background:var(--paper-raised); color:var(--ink-soft); border:1px solid var(--line);
+    font-size:.78rem; padding:.5rem .3rem;
+  }
+  .onglets-periode button.actif{background:var(--amber); color:#fff; border-color:var(--amber);}
+
+  .pied{display:flex; justify-content:space-between; align-items:center; margin-top:1.5rem;}
+  .horodatage{font-size:.72rem; color:var(--ink-soft);}
+</style>
+</head>
+<body>
+
+<div id="ecran-connexion">
+  <form class="carte-connexion" id="formulaire-connexion">
+    <h1>Ets Quincaillerie Franck</h1>
+    <p class="sous">Supervision à distance — réservée au responsable</p>
+
+    <label for="champ-identifiant">Identifiant</label>
+    <input id="champ-identifiant" type="text" autocomplete="username" required>
+
+    <label for="champ-mot-de-passe">Mot de passe</label>
+    <input id="champ-mot-de-passe" type="password" autocomplete="current-password" required>
+
+    <button type="submit" class="bouton-principal" id="bouton-connexion">Se connecter</button>
+    <p class="message-erreur" id="erreur-connexion" hidden></p>
+  </form>
+</div>
+
+<div id="ecran-dashboard" hidden>
+  <header class="entete">
+    <div>
+      <h1 id="texte-bienvenue">Bonjour</h1>
+      <p>Ets Quincaillerie Franck · Batouri</p>
+    </div>
+    <button class="bouton-secondaire" id="bouton-deconnexion">Quitter</button>
+  </header>
+
+  <div class="selecteur-site" id="selecteur-site"></div>
+
+  <section class="bloc">
+    <h2>Aujourd'hui</h2>
+    <div class="grille-cartes trois">
+      <div class="carte-stat positif"><p class="titre">Recettes</p><p class="valeur" id="valeur-recettes">—</p></div>
+      <div class="carte-stat alerte"><p class="titre">Dépenses</p><p class="valeur" id="valeur-depenses">—</p></div>
+      <div class="carte-stat"><p class="titre">Solde net</p><p class="valeur" id="valeur-solde">—</p></div>
+    </div>
+  </section>
+
+  <section class="bloc">
+    <h2>Alertes stock faible (<span id="nombre-alertes">0</span>)</h2>
+    <div class="liste" id="liste-alertes"><p class="vide">Chargement…</p></div>
+  </section>
+
+  <section class="bloc">
+    <h2>Rapports</h2>
+    <div class="onglets-periode">
+      <button data-periode="semaine" class="actif">Cette semaine</button>
+      <button data-periode="mois">Ce mois-ci</button>
+      <button data-periode="30jours">30 derniers jours</button>
+    </div>
+    <div class="grille-cartes" style="margin-bottom:1rem;">
+      <div class="carte-stat"><p class="titre">Total ventes TTC</p><p class="valeur" id="valeur-total-ventes">—</p></div>
+      <div class="carte-stat"><p class="titre">Marge estimée</p><p class="valeur" id="valeur-marge">—</p></div>
+    </div>
+    <div class="liste" id="liste-produits"><p class="vide">Chargement…</p></div>
+  </section>
+
+  <div class="pied">
+    <span class="horodatage" id="horodatage">—</span>
+    <button class="bouton-secondaire" id="bouton-rafraichir">Rafraîchir</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var etat = { jeton: localStorage.getItem("jeton_quincaillerie"), siteId: null, periode: "semaine" };
+
+  var ecranConnexion = document.getElementById("ecran-connexion");
+  var ecranDashboard = document.getElementById("ecran-dashboard");
+  var formulaireConnexion = document.getElementById("formulaire-connexion");
+  var erreurConnexion = document.getElementById("erreur-connexion");
+  var boutonConnexion = document.getElementById("bouton-connexion");
+
+  function formaterFCFA(valeur) {
+    var arrondi = Math.round(Number(valeur) || 0);
+    return arrondi.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") + " F";
+  }
+
+  function appelApi(chemin, options) {
+    options = options || {};
+    options.headers = Object.assign({}, options.headers, { Authorization: "Bearer " + etat.jeton });
+    return fetch(chemin, options).then(function (reponse) {
+      if (reponse.status === 401) {
+        deconnecter();
+        throw new Error("Session expirée, reconnectez-vous.");
+      }
+      if (!reponse.ok) {
+        return reponse.json().then(function (corps) {
+          throw new Error((corps && corps.detail) || "Une erreur est survenue.");
+        });
+      }
+      return reponse.json();
+    });
+  }
+
+  function deconnecter() {
+    etat.jeton = null;
+    localStorage.removeItem("jeton_quincaillerie");
+    ecranDashboard.hidden = true;
+    ecranConnexion.hidden = false;
+  }
+
+  formulaireConnexion.addEventListener("submit", function (evenement) {
+    evenement.preventDefault();
+    erreurConnexion.hidden = true;
+    boutonConnexion.disabled = true;
+    boutonConnexion.textContent = "Connexion…";
+
+    fetch("/api/connexion", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        identifiant: document.getElementById("champ-identifiant").value.trim(),
+        mot_de_passe: document.getElementById("champ-mot-de-passe").value,
+      }),
+    })
+      .then(function (reponse) {
+        return reponse.json().then(function (corps) {
+          if (!reponse.ok) throw new Error(corps.detail || "Connexion impossible.");
+          return corps;
+        });
+      })
+      .then(function (corps) {
+        etat.jeton = corps.jeton;
+        localStorage.setItem("jeton_quincaillerie", corps.jeton);
+        document.getElementById("texte-bienvenue").textContent = "Bonjour, " + corps.nom_complet;
+        demarrerTableauDeBord();
+      })
+      .catch(function (erreur) {
+        erreurConnexion.textContent = erreur.message;
+        erreurConnexion.hidden = false;
+      })
+      .finally(function () {
+        boutonConnexion.disabled = false;
+        boutonConnexion.textContent = "Se connecter";
+      });
+  });
+
+  document.getElementById("bouton-deconnexion").addEventListener("click", deconnecter);
+  document.getElementById("bouton-rafraichir").addEventListener("click", chargerDonnees);
+
+  document.querySelectorAll(".onglets-periode button").forEach(function (bouton) {
+    bouton.addEventListener("click", function () {
+      document.querySelectorAll(".onglets-periode button").forEach(function (b) { b.classList.remove("actif"); });
+      bouton.classList.add("actif");
+      etat.periode = bouton.dataset.periode;
+      chargerRapports();
+    });
+  });
+
+  function chargerSites() {
+    return appelApi("/api/sites").then(function (sites) {
+      var conteneur = document.getElementById("selecteur-site");
+      conteneur.innerHTML = "";
+
+      var puceTous = document.createElement("button");
+      puceTous.className = "puce-site actif";
+      puceTous.textContent = "Tous les sites";
+      puceTous.addEventListener("click", function () { choisirSite(null, puceTous); });
+      conteneur.appendChild(puceTous);
+
+      sites.forEach(function (site) {
+        var puce = document.createElement("button");
+        puce.className = "puce-site";
+        puce.textContent = site.nom;
+        puce.addEventListener("click", function () { choisirSite(site.id, puce); });
+        conteneur.appendChild(puce);
+      });
+    });
+  }
+
+  function choisirSite(siteId, puceCliquee) {
+    etat.siteId = siteId;
+    document.querySelectorAll(".puce-site").forEach(function (p) { p.classList.remove("actif"); });
+    puceCliquee.classList.add("actif");
+    chargerDonnees();
+  }
+
+  function chargerTableauDeBord() {
+    var chemin = "/api/tableau-de-bord" + (etat.siteId ? "?site_id=" + etat.siteId : "");
+    return appelApi(chemin).then(function (donnees) {
+      document.getElementById("valeur-recettes").textContent = formaterFCFA(donnees.recettes_jour);
+      document.getElementById("valeur-depenses").textContent = formaterFCFA(donnees.depenses_jour);
+      document.getElementById("valeur-solde").textContent = formaterFCFA(donnees.solde_jour);
+      document.getElementById("nombre-alertes").textContent = donnees.nombre_alertes;
+
+      var listeAlertes = document.getElementById("liste-alertes");
+      listeAlertes.innerHTML = "";
+      if (donnees.alertes.length === 0) {
+        listeAlertes.innerHTML = '<p class="vide">Aucune alerte de stock pour le moment.</p>';
+      } else {
+        donnees.alertes.forEach(function (article) {
+          var ligne = document.createElement("div");
+          ligne.className = "ligne-liste";
+          ligne.innerHTML =
+            '<div><div class="principal"></div><div class="accessoire"></div></div>' +
+            '<div class="droite"></div>';
+          ligne.querySelector(".principal").textContent = article.nom;
+          ligne.querySelector(".accessoire").textContent = article.site_nom;
+          ligne.querySelector(".droite").textContent = article.quantite_stock + " restants";
+          listeAlertes.appendChild(ligne);
+        });
+      }
+    });
+  }
+
+  function chargerRapports() {
+    var chemin = "/api/rapports?periode=" + etat.periode + (etat.siteId ? "&site_id=" + etat.siteId : "");
+    return appelApi(chemin).then(function (donnees) {
+      document.getElementById("valeur-total-ventes").textContent = formaterFCFA(donnees.total_ventes_ttc);
+      document.getElementById("valeur-marge").textContent = formaterFCFA(donnees.marge_estimee);
+
+      var listeProduits = document.getElementById("liste-produits");
+      listeProduits.innerHTML = "";
+      if (donnees.produits_plus_vendus.length === 0) {
+        listeProduits.innerHTML = '<p class="vide">Aucune vente sur cette période.</p>';
+      } else {
+        donnees.produits_plus_vendus.forEach(function (produit) {
+          var ligne = document.createElement("div");
+          ligne.className = "ligne-liste";
+          ligne.innerHTML = '<div class="principal"></div><div class="droite"></div>';
+          ligne.querySelector(".principal").textContent = produit.nom;
+          ligne.querySelector(".droite").textContent = produit.quantite_vendue + " vendus";
+          listeProduits.appendChild(ligne);
+        });
+      }
+    });
+  }
+
+  function chargerDonnees() {
+    document.getElementById("horodatage").textContent = "Mise à jour…";
+    Promise.all([chargerTableauDeBord(), chargerRapports()])
+      .then(function () {
+        document.getElementById("horodatage").textContent =
+          "Mis à jour à " + new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+      })
+      .catch(function (erreur) {
+        document.getElementById("horodatage").textContent = erreur.message;
+      });
+  }
+
+  function demarrerTableauDeBord() {
+    ecranConnexion.hidden = true;
+    ecranDashboard.hidden = false;
+    chargerSites().then(chargerDonnees);
+  }
+
+  if (etat.jeton) {
+    demarrerTableauDeBord();
+  }
+})();
+</script>
+</body>
+</html>

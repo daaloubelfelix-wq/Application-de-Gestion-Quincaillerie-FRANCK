@@ -121,5 +121,29 @@ def ajuster_stock_manuellement(article_id, type_mouvement, quantite, motif, util
         )
 
 
+def articles_en_alerte(site_id=None):
+    """
+    Articles dont le stock est descendu au seuil d'alerte ou en dessous.
+    site_id=None consolide les deux sites (utilisé par le tableau de bord
+    mobile du responsable).
+    """
+    condition_site = ""
+    params = []
+    if site_id is not None:
+        condition_site = "AND a.site_id = %s"
+        params.append(site_id)
+
+    return Database.fetch_all(
+        f"""
+        SELECT a.id, a.nom, a.quantite_stock, a.seuil_alerte, s.nom AS site_nom
+        FROM articles a
+        JOIN sites s ON s.id = a.site_id
+        WHERE a.quantite_stock <= a.seuil_alerte {condition_site}
+        ORDER BY a.quantite_stock ASC
+        """,
+        params,
+    )
+
+
 def lister_fournisseurs():
     return Database.fetch_all("SELECT id, nom FROM fournisseurs ORDER BY nom")
