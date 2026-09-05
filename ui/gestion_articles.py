@@ -57,6 +57,7 @@ class GestionArticles(QWidget):
         self.tableau.setHorizontalHeaderLabels(
             ["Nom", "Catégorie", "Prix de vente", "Stock", "Seuil", "Action"]
         )
+        self.tableau.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         self.tableau.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         self.tableau.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         layout.addWidget(self.tableau)

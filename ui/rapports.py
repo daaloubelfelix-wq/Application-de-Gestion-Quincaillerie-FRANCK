@@ -60,6 +60,7 @@ class Rapports(QWidget):
         self.tableau = QTableWidget()
         self.tableau.setColumnCount(2)
         self.tableau.setHorizontalHeaderLabels(["Article", "Quantité vendue"])
+        self.tableau.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         self.tableau.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         self.tableau.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         layout.addWidget(self.tableau)

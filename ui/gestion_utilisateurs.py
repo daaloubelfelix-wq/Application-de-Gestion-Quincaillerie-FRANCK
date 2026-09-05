@@ -32,6 +32,7 @@ class GestionUtilisateurs(QWidget):
         self.tableau = QTableWidget()
         self.tableau.setColumnCount(5)
         self.tableau.setHorizontalHeaderLabels(["Nom", "Rôle", "Site", "Statut", "Action"])
+        self.tableau.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         self.tableau.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         self.tableau.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         layout.addWidget(self.tableau)

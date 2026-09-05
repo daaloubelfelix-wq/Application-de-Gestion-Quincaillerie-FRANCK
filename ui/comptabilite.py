@@ -62,6 +62,7 @@ class Comptabilite(QWidget):
         self.tableau = QTableWidget()
         self.tableau.setColumnCount(4)
         self.tableau.setHorizontalHeaderLabels(["Description", "Auteur", "Date", "Montant"])
+        self.tableau.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         self.tableau.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         self.tableau.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         layout.addWidget(self.tableau)

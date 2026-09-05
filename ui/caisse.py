@@ -46,6 +46,7 @@ class Caisse(QWidget):
         self.tableau.setHorizontalHeaderLabels(
             ["Site", "Enregistrée par", "Document", "Montant", "Heure", "Action"]
         )
+        self.tableau.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         self.tableau.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         self.tableau.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         layout.addWidget(self.tableau)
