@@ -76,10 +76,10 @@ class Rapports(QWidget):
 
     def _creer_carte(self, titre):
         cadre = QFrame()
-        cadre.setStyleSheet("background-color: #EAE5D7; border-radius: 8px; padding: 12px;")
+        cadre.setStyleSheet("background-color: #E7DFC9; border-radius: 8px; padding: 12px;")
         vlayout = QVBoxLayout()
         label_titre = QLabel(titre)
-        label_titre.setStyleSheet("font-size: 12px; color: #5B6169;")
+        label_titre.setStyleSheet("font-size: 12px; color: #6B6357;")
         label_valeur = QLabel("0 FCFA")
         label_valeur.setObjectName("valeur")
         label_valeur.setStyleSheet("font-size: 20px; font-weight: bold;")

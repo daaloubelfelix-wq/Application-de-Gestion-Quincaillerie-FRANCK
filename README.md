@@ -91,7 +91,8 @@ quincaillerie_app/
 │   ├── fournisseurs.py            Gestion des fournisseurs
 │   └── utilisateurs.py            Création et activation/désactivation des comptes
 ├── ui/
-│   ├── login_window.py            Écran de connexion
+│   ├── login_window.py            Écran de connexion (fond papier, badge boîte à outils)
+│   ├── motif_outils.py            Motif d'outils en filigrane (fond de l'écran de connexion)
 │   ├── dashboard_agent.py         Tableau de bord agent (vue par site et par rôle)
 │   ├── dashboard_responsable.py   Tableau de bord responsable (vue consolidée)
 │   ├── gestion_articles.py        Liste, ajout, modification des articles

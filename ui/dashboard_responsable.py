@@ -29,7 +29,7 @@ class TableauBordResponsable(QWidget):
         nom = QLabel(f"Bonjour, {self.utilisateur['nom_complet']}")
         nom.setStyleSheet("font-size: 16px; font-weight: bold;")
         role = QLabel("Responsable · Tous les sites")
-        role.setStyleSheet("color: #5B6169; font-size: 12px;")
+        role.setStyleSheet("color: #6B6357; font-size: 12px;")
         infos.addWidget(nom)
         infos.addWidget(role)
         entete.addLayout(infos)
@@ -107,10 +107,10 @@ class TableauBordResponsable(QWidget):
 
     def _carte_stat(self, titre, valeur):
         cadre = QFrame()
-        cadre.setStyleSheet("background-color: #EAE5D7; border-radius: 8px; padding: 12px;")
+        cadre.setStyleSheet("background-color: #E7DFC9; border-radius: 8px; padding: 12px;")
         vlayout = QVBoxLayout()
         label_titre = QLabel(titre)
-        label_titre.setStyleSheet("font-size: 12px; color: #5B6169;")
+        label_titre.setStyleSheet("font-size: 12px; color: #6B6357;")
         label_valeur = QLabel(valeur)
         label_valeur.setStyleSheet("font-size: 20px; font-weight: bold;")
         vlayout.addWidget(label_titre)

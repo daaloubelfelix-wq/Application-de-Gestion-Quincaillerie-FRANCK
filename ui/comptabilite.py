@@ -37,14 +37,14 @@ class Comptabilite(QWidget):
         layout.addLayout(entete)
 
         cartes = QHBoxLayout()
-        self.carte_recettes = self._creer_carte("Recettes du jour", "#DEE9DF", "#43724A")
-        self.carte_depenses = self._creer_carte("Dépenses du jour", "#F4DDD0", "#A8431C")
+        self.carte_recettes = self._creer_carte("Recettes du jour", "#DDE8DD", "#3F6B46")
+        self.carte_depenses = self._creer_carte("Dépenses du jour", "#F0DDD0", "#9C3D1F")
         cartes.addWidget(self.carte_recettes)
         cartes.addWidget(self.carte_depenses)
         layout.addLayout(cartes)
 
         self.cadre_solde = QFrame()
-        self.cadre_solde.setStyleSheet("background-color: #EAE5D7; border-radius: 8px; padding: 12px;")
+        self.cadre_solde.setStyleSheet("background-color: #E7DFC9; border-radius: 8px; padding: 12px;")
         solde_layout = QHBoxLayout()
         self.label_solde_titre = QLabel("Solde net du jour")
         self.label_solde_valeur = QLabel("0 FCFA")
@@ -106,7 +106,7 @@ class Comptabilite(QWidget):
             signe = "+" if transaction["type"] == "recette" else "-"
             item_montant = QTableWidgetItem(f"{signe}{transaction['montant']:,.0f} FCFA".replace(",", " "))
             item_montant.setForeground(
-                QColor("#43724A") if transaction["type"] == "recette" else QColor("#A8431C")
+                QColor("#3F6B46") if transaction["type"] == "recette" else QColor("#9C3D1F")
             )
             self.tableau.setItem(ligne, 3, item_montant)
 

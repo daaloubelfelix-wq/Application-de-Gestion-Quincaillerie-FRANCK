@@ -99,8 +99,8 @@ class GestionArticles(QWidget):
 
             item_stock = QTableWidgetItem(str(article["quantite_stock"]))
             if article["quantite_stock"] <= article["seuil_alerte"]:
-                item_stock.setBackground(QColor("#F4DDD0"))
-                item_stock.setForeground(QColor("#A8431C"))
+                item_stock.setBackground(QColor("#F0DDD0"))
+                item_stock.setForeground(QColor("#9C3D1F"))
             self.tableau.setItem(ligne, 3 + decalage, item_stock)
 
             self.tableau.setItem(ligne, 4 + decalage, QTableWidgetItem(str(article["seuil_alerte"])))
