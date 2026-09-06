@@ -68,12 +68,26 @@ class TableauBordResponsable(QWidget):
         self.site_selectionne_id = site_id
         self._rafraichir_stats()
 
-    def _rafraichir_stats(self):
-        # Vide la zone avant de la reconstruire
+    def _vider_zone_stats(self):
         while self.zone_stats.count():
             item = self.zone_stats.takeAt(0)
             if item.widget():
                 item.widget().deleteLater()
+            elif item.layout():
+                self._vider_layout(item.layout())
+
+    def _vider_layout(self, layout):
+        while layout.count():
+            item = layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+
+    def _rafraichir_stats(self):
+        # Vide la zone avant de la reconstruire — y compris les cartes
+        # imbriquées dans la sous-disposition "cartes" (sinon l'ancienne
+        # affichage reste figé par-dessus, comme si les boutons ne
+        # faisaient rien).
+        self._vider_zone_stats()
 
         aujourd_hui = date.today()
 
