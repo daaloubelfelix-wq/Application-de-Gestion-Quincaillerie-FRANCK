@@ -16,11 +16,17 @@ pip install -r requirements.txt
 pip install -r requirements-empaquetage.txt
 
 pyinstaller --noconfirm --windowed --onefile --name QuincaillerieFranck --add-data "ui/style.qss:ui" main.py
+pyinstaller --noconfirm --onefile --name CreerCompteResponsable creer_compte_responsable.py
 
 echo ""
 echo "============================================================"
-echo "Terminé. L'exécutable se trouve dans : dist/QuincaillerieFranck"
+echo "Terminé. Les exécutables se trouvent dans :"
+echo "  dist/QuincaillerieFranck        (application)"
+echo "  dist/CreerCompteResponsable     (à lancer UNE FOIS, pour"
+echo "                                   créer le premier compte)"
 echo ""
 echo "Pour chaque poste : copier QuincaillerieFranck ET config.ini"
 echo "(voir config.example.ini) dans le même dossier, puis le lancer."
+echo "Pour un testeur à distance (sa propre base de données), voir"
+echo "GUIDE_TESTEURS_A_DISTANCE.md."
 echo "============================================================"
