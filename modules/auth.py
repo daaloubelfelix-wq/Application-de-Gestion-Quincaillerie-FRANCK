@@ -65,3 +65,26 @@ def hacher_mot_de_passe(mot_de_passe_clair: str) -> str:
     """Utilitaire pour créer un nouveau compte (utilisé par l'écran Utilisateurs)."""
     sel = bcrypt.gensalt()
     return bcrypt.hashpw(mot_de_passe_clair.encode("utf-8"), sel).decode("utf-8")
+
+
+def changer_mot_de_passe(utilisateur_id: int, ancien_mot_de_passe: str, nouveau_mot_de_passe: str):
+    """Permet à un utilisateur connecté de changer lui-même son mot de
+    passe (menu de la fenêtre principale), en confirmant l'ancien."""
+    if len(nouveau_mot_de_passe) < 4:
+        raise ValueError("Le nouveau mot de passe doit contenir au moins 4 caractères.")
+
+    utilisateur = Database.fetch_one(
+        "SELECT mot_de_passe_hash FROM utilisateurs WHERE id = %s", (utilisateur_id,)
+    )
+    if utilisateur is None:
+        raise ValueError("Ce compte n'existe plus.")
+
+    if not bcrypt.checkpw(
+        ancien_mot_de_passe.encode("utf-8"), utilisateur["mot_de_passe_hash"].encode("utf-8")
+    ):
+        raise ValueError("L'ancien mot de passe saisi est incorrect.")
+
+    Database.execute(
+        "UPDATE utilisateurs SET mot_de_passe_hash = %s WHERE id = %s",
+        (hacher_mot_de_passe(nouveau_mot_de_passe), utilisateur_id),
+    )

@@ -19,6 +19,7 @@ from ui.comptabilite import Comptabilite
 from ui.rapports import Rapports
 from ui.gestion_fournisseurs import GestionFournisseurs
 from ui.gestion_utilisateurs import GestionUtilisateurs
+from ui.dialogue_mot_de_passe import DialogueMotDePasse
 
 
 class FenetrePrincipale(QMainWindow):
@@ -50,6 +51,10 @@ class FenetrePrincipale(QMainWindow):
         barre_haut = QHBoxLayout()
         barre_haut.setContentsMargins(12, 8, 12, 0)
         barre_haut.addStretch()
+        bouton_mot_de_passe = QPushButton("Modifier mon mot de passe")
+        bouton_mot_de_passe.setProperty("secondaire", True)
+        bouton_mot_de_passe.clicked.connect(self._modifier_mot_de_passe)
+        barre_haut.addWidget(bouton_mot_de_passe)
         bouton_deconnexion = QPushButton("Se déconnecter")
         bouton_deconnexion.setProperty("secondaire", True)
         bouton_deconnexion.clicked.connect(self._se_deconnecter)
@@ -82,6 +87,9 @@ class FenetrePrincipale(QMainWindow):
         conteneur.setLayout(layout_conteneur)
 
         self.setCentralWidget(conteneur)
+
+    def _modifier_mot_de_passe(self):
+        DialogueMotDePasse(self.utilisateur, parent=self).exec()
 
     def _se_deconnecter(self):
         if self.on_deconnexion:
