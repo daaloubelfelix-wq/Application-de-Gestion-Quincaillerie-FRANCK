@@ -17,7 +17,16 @@ class TableauBordResponsable(QWidget):
         super().__init__()
         self.utilisateur = utilisateur
         self.site_selectionne_id = None  # None = tous les sites
+        # Branchés depuis main.py une fois tous les onglets créés (voir
+        # définir_navigation), pour que ces boutons ouvrent réellement
+        # les onglets Rapports/Utilisateurs au lieu de ne rien faire.
+        self.on_ouvrir_rapports = None
+        self.on_ouvrir_utilisateurs = None
         self._construire_interface()
+
+    def definir_navigation(self, on_ouvrir_rapports, on_ouvrir_utilisateurs):
+        self.on_ouvrir_rapports = on_ouvrir_rapports
+        self.on_ouvrir_utilisateurs = on_ouvrir_utilisateurs
 
     def _construire_interface(self):
         layout = QVBoxLayout()
@@ -56,7 +65,9 @@ class TableauBordResponsable(QWidget):
         # Actions
         actions = QHBoxLayout()
         bouton_utilisateurs = QPushButton("Utilisateurs")
+        bouton_utilisateurs.clicked.connect(lambda: self.on_ouvrir_utilisateurs and self.on_ouvrir_utilisateurs())
         bouton_rapports = QPushButton("Rapports")
+        bouton_rapports.clicked.connect(lambda: self.on_ouvrir_rapports and self.on_ouvrir_rapports())
         actions.addWidget(bouton_utilisateurs)
         actions.addWidget(bouton_rapports)
         layout.addLayout(actions)

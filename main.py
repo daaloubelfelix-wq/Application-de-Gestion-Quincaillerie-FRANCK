@@ -72,13 +72,18 @@ class FenetrePrincipale(QMainWindow):
         onglets = QTabWidget()
 
         if utilisateur["role"] == "responsable":
-            onglets.addTab(TableauBordResponsable(utilisateur), "Tableau de bord")
+            tableau_bord = TableauBordResponsable(utilisateur)
+            onglets.addTab(tableau_bord, "Tableau de bord")
             onglets.addTab(GestionArticles(utilisateur), "Articles")
             onglets.addTab(Caisse(utilisateur), "Historique des ventes")
-            onglets.addTab(Rapports(utilisateur), "Rapports")
+            index_rapports = onglets.addTab(Rapports(utilisateur), "Rapports")
             onglets.addTab(GestionFournisseurs(utilisateur), "Fournisseurs")
             onglets.addTab(GestionRH(utilisateur), "Personnel")
-            onglets.addTab(GestionUtilisateurs(utilisateur), "Utilisateurs")
+            index_utilisateurs = onglets.addTab(GestionUtilisateurs(utilisateur), "Utilisateurs")
+            tableau_bord.definir_navigation(
+                on_ouvrir_rapports=lambda: onglets.setCurrentIndex(index_rapports),
+                on_ouvrir_utilisateurs=lambda: onglets.setCurrentIndex(index_utilisateurs),
+            )
         elif utilisateur["role"] == "agent_stock":
             onglets.addTab(TableauBordAgent(utilisateur), "Tableau de bord")
             onglets.addTab(GestionArticles(utilisateur), "Articles")
