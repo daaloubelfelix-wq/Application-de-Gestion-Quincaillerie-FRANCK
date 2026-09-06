@@ -1,15 +1,20 @@
 """
-Écran de connexion.
-L'utilisateur entre uniquement son identifiant et son mot de passe.
-Le rôle et le site sont déterminés automatiquement en base de données.
+Écran d'accueil et de connexion.
+Grande illustration à gauche (identité de la boutique), carte de
+connexion compacte dans le coin inférieur droit. L'utilisateur entre
+uniquement son identifiant et son mot de passe ; le rôle et le site sont
+déterminés automatiquement en base de données.
 """
 
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox, QFrame
+    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton,
+    QMessageBox, QFrame
 )
 from PyQt6.QtCore import Qt
 
 from modules.auth import authentifier
+from ui.icones import icone_oeil
+from ui.illustration_outils import IllustrationOutils
 
 
 class LoginWindow(QWidget):
@@ -17,53 +22,65 @@ class LoginWindow(QWidget):
         super().__init__()
         self.on_login_success = on_login_success
         self.setWindowTitle("Ets Quincaillerie Franck — Connexion")
-        self.setFixedSize(380, 460)
+        self.resize(1000, 620)
+        self.setMinimumSize(820, 560)
         self._construire_interface()
 
     def _construire_interface(self):
-        layout = QVBoxLayout()
+        layout = QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
-        # Bandeau d'en-tête
-        banniere = QFrame()
-        banniere.setObjectName("banniereConnexion")
-        banniere.setFixedHeight(140)
-        banniere_layout = QVBoxLayout()
-        banniere_layout.setContentsMargins(24, 0, 24, 0)
+        layout.addWidget(IllustrationOutils(), stretch=3)
 
-        titre = QLabel("Ets Quincaillerie Franck")
-        titre.setObjectName("titreConnexion")
-        titre.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        titre.setWordWrap(True)
+        colonne_droite = QVBoxLayout()
+        colonne_droite.setContentsMargins(28, 28, 28, 28)
+        colonne_droite.addStretch(2)
+        colonne_droite.addWidget(self._construire_carte_connexion())
+        colonne_droite.addStretch(1)
 
-        sous_titre = QLabel("Batouri · Gestion de quincaillerie")
-        sous_titre.setObjectName("sousTitreConnexion")
-        sous_titre.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        conteneur_droite = QWidget()
+        conteneur_droite.setObjectName("panneauConnexion")
+        conteneur_droite.setLayout(colonne_droite)
+        conteneur_droite.setMinimumWidth(320)
+        layout.addWidget(conteneur_droite, stretch=2)
 
-        banniere_layout.addStretch()
-        banniere_layout.addWidget(titre)
-        banniere_layout.addWidget(sous_titre)
-        banniere_layout.addStretch()
-        banniere.setLayout(banniere_layout)
+        self.setLayout(layout)
 
-        # Carte de connexion
+    def _construire_carte_connexion(self):
         carte = QFrame()
         carte.setObjectName("carteConnexionEcran")
         carte_layout = QVBoxLayout()
-        carte_layout.setContentsMargins(32, 32, 32, 32)
-        carte_layout.setSpacing(12)
+        carte_layout.setContentsMargins(28, 28, 28, 28)
+        carte_layout.setSpacing(10)
 
-        invite = QLabel("Connectez-vous à votre poste")
-        invite.setObjectName("titreSection")
+        invite = QLabel("Connectez-vous")
+        invite.setObjectName("titreEcran")
+
+        sous_invite = QLabel("Entrez votre identifiant et votre mot de passe.")
+        sous_invite.setObjectName("texteAttenue")
+        sous_invite.setWordWrap(True)
 
         self.champ_identifiant = QLineEdit()
         self.champ_identifiant.setPlaceholderText("Identifiant")
 
+        ligne_mot_de_passe = QHBoxLayout()
+        ligne_mot_de_passe.setSpacing(6)
         self.champ_mot_de_passe = QLineEdit()
         self.champ_mot_de_passe.setPlaceholderText("Mot de passe")
         self.champ_mot_de_passe.setEchoMode(QLineEdit.EchoMode.Password)
         self.champ_mot_de_passe.returnPressed.connect(self._tenter_connexion)
+
+        self.bouton_oeil = QPushButton()
+        self.bouton_oeil.setObjectName("boutonOeil")
+        self.bouton_oeil.setCheckable(True)
+        self.bouton_oeil.setIcon(icone_oeil(ouvert=False))
+        self.bouton_oeil.setToolTip("Afficher le mot de passe")
+        self.bouton_oeil.setFixedWidth(36)
+        self.bouton_oeil.clicked.connect(self._basculer_visibilite_mot_de_passe)
+
+        ligne_mot_de_passe.addWidget(self.champ_mot_de_passe)
+        ligne_mot_de_passe.addWidget(self.bouton_oeil)
 
         bouton_connexion = QPushButton("Se connecter")
         bouton_connexion.clicked.connect(self._tenter_connexion)
@@ -71,22 +88,31 @@ class LoginWindow(QWidget):
         self.label_erreur = QLabel("")
         self.label_erreur.setObjectName("texteErreur")
         self.label_erreur.setWordWrap(True)
-        self.label_erreur.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        aide = QLabel("Mot de passe oublié ? Contactez le responsable.")
+        aide.setObjectName("texteAttenue")
 
         carte_layout.addWidget(invite)
+        carte_layout.addWidget(sous_invite)
         carte_layout.addSpacing(6)
         carte_layout.addWidget(self.champ_identifiant)
-        carte_layout.addWidget(self.champ_mot_de_passe)
-        carte_layout.addSpacing(6)
+        carte_layout.addLayout(ligne_mot_de_passe)
+        carte_layout.addSpacing(4)
         carte_layout.addWidget(bouton_connexion)
         carte_layout.addWidget(self.label_erreur)
-        carte_layout.addStretch()
+        carte_layout.addSpacing(8)
+        carte_layout.addWidget(aide)
+
         carte.setLayout(carte_layout)
+        return carte
 
-        layout.addWidget(banniere)
-        layout.addWidget(carte, stretch=1)
-
-        self.setLayout(layout)
+    def _basculer_visibilite_mot_de_passe(self):
+        visible = self.bouton_oeil.isChecked()
+        self.champ_mot_de_passe.setEchoMode(
+            QLineEdit.EchoMode.Normal if visible else QLineEdit.EchoMode.Password
+        )
+        self.bouton_oeil.setIcon(icone_oeil(ouvert=visible))
+        self.bouton_oeil.setToolTip("Masquer le mot de passe" if visible else "Afficher le mot de passe")
 
     def _tenter_connexion(self):
         identifiant = self.champ_identifiant.text().strip()

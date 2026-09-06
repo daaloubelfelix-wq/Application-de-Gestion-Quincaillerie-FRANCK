@@ -20,6 +20,7 @@ from PyQt6.QtCore import Qt
 
 from modules.ventes import enregistrer_commande, rechercher_articles
 from modules.facturation import calculer_totaux, generer_ticket_pdf, generer_facture_pdf
+from ui.dialogue_document import DialogueDocumentGenere
 
 
 class PointDeVente(QWidget):
@@ -180,9 +181,8 @@ class PointDeVente(QWidget):
         if resultat.get("numero_facture"):
             message += f"\nFacture n° {resultat['numero_facture']}"
         message += f"\nMontant à payer à la caisse : {resultat['total_ttc']:,.0f} FCFA".replace(",", " ")
-        message += f"\nDocument généré : {chemin_pdf}"
 
-        QMessageBox.information(self, "Commande enregistrée", message)
+        DialogueDocumentGenere("Commande enregistrée", message, chemin_pdf, parent=self).exec()
 
         self.panier = []
         self._rafraichir_panier()

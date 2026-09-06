@@ -11,6 +11,9 @@ from PyQt6.QtWidgets import (
 )
 
 from modules.ventes import commandes_en_attente, encaisser_commande, annuler_commande
+from modules.paiement import libelle_mode_paiement
+from ui.formulaire_encaissement import FormulaireEncaissement
+from ui.confirmation import confirmer
 
 
 class Caisse(QWidget):
@@ -75,7 +78,7 @@ class Caisse(QWidget):
             actions_layout.setContentsMargins(0, 0, 0, 0)
             bouton_encaisser = QPushButton("Encaisser")
             bouton_encaisser.clicked.connect(
-                lambda _, vid=commande["id"]: self._encaisser(vid)
+                lambda _, vid=commande["id"], montant=commande["total_ttc"]: self._encaisser(vid, montant)
             )
             bouton_annuler = QPushButton("Annuler")
             bouton_annuler.setProperty("secondaire", True)
@@ -90,27 +93,30 @@ class Caisse(QWidget):
         if not commandes:
             self.tableau.setRowCount(0)
 
-    def _encaisser(self, vente_id):
+    def _encaisser(self, vente_id, montant_ttc):
+        dialogue = FormulaireEncaissement(montant_ttc, parent=self)
+        if not dialogue.exec():
+            return
+        mode_paiement = dialogue.mode_paiement_selectionne()
+
         try:
-            resultat = encaisser_commande(vente_id, self.utilisateur)
+            resultat = encaisser_commande(vente_id, self.utilisateur, mode_paiement)
         except ValueError as erreur:
             QMessageBox.warning(self, "Impossible d'encaisser", str(erreur))
             return
         QMessageBox.information(
             self, "Paiement reçu",
-            f"Encaissement enregistré : {resultat['total_ttc']:,.0f} FCFA".replace(",", " "),
+            f"Encaissement enregistré : {resultat['total_ttc']:,.0f} FCFA "
+            f"({libelle_mode_paiement(resultat['mode_paiement'])})".replace(",", " "),
         )
         self._rafraichir()
 
     def _annuler(self, vente_id):
-        reponse = QMessageBox.question(
+        if not confirmer(
             self,
             "Confirmer l'annulation",
             "Le client ne paie pas cette commande — le stock retiré sera restitué. Continuer ?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No,
-        )
-        if reponse != QMessageBox.StandardButton.Yes:
+        ):
             return
 
         try:

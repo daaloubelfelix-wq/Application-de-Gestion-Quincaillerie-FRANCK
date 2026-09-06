@@ -24,6 +24,10 @@ Sur le serveur PostgreSQL, exécuter :
 psql -U votre_utilisateur -d votre_base -f creation_base_donnees.sql
 ```
 
+*(Base déjà créée avec une version antérieure du projet ? Exécuter aussi les
+scripts `migration_v2_caisse.sql` puis `migration_v3_mode_paiement.sql`,
+dans cet ordre, plutôt que de tout recréer.)*
+
 Puis copier `config.example.ini` vers `config.ini` (même dossier) et renseigner
 l'adresse IP réelle du poste serveur ainsi que les identifiants de connexion.
 `config.ini` contient un mot de passe : il ne doit jamais être partagé ni
@@ -202,7 +206,8 @@ Reflète le fonctionnement réel de la boutique — trois personnes, trois étap
 - Commande client (comptabilité) avec génération PDF au format ticket rapide
   OU facture détaillée numérotée, TVA à 19,25% incluse — enregistrement
   transactionnel (une commande est écrite intégralement ou pas du tout)
-- Caisse (responsable) : encaissement ou annulation des commandes en attente,
+- Caisse (responsable) : encaissement (Espèces, Orange Money, MTN Mobile
+  Money, Crédit client, Autre) ou annulation des commandes en attente,
   tous sites confondus
 - Comptabilité : les encaissements créent automatiquement une recette,
   saisie manuelle possible pour les dépenses
@@ -216,6 +221,10 @@ Reflète le fonctionnement réel de la boutique — trois personnes, trois étap
   ci-dessus pour la rendre accessible depuis Internet
 - Montants affichés en FCFA ; interface avec une feuille de style
   cohérente (voir `ui/style.qss`)
+- Écran d'accueil illustré, avec la connexion dans un panneau dédié ;
+  bouton pour afficher/masquer le mot de passe (identifiant, création de
+  compte) ; boutons « Ouvrir le PDF » / « Imprimer » après l'enregistrement
+  d'une commande
 
 ## Corrections apportées au code initial (voir l'audit)
 

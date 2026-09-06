@@ -102,6 +102,9 @@ CREATE TABLE ventes (
     numero_facture VARCHAR(30) UNIQUE,        -- ex : 2026-0842, rempli si type_document = 'facture'
     statut VARCHAR(20) NOT NULL DEFAULT 'en_attente' CHECK (statut IN ('en_attente', 'payee', 'annulee')),
     utilisateur_caisse_id INTEGER REFERENCES utilisateurs(id),  -- qui a encaissé (rempli à l'encaissement)
+    mode_paiement VARCHAR(30) CHECK (
+        mode_paiement IN ('especes', 'orange_money', 'mtn_momo', 'credit_client', 'autre')
+    ),  -- rempli à l'encaissement, voir modules/paiement.py
     sous_total_ht NUMERIC(12,2) NOT NULL,
     taux_tva NUMERIC(5,2) NOT NULL DEFAULT 19.25,
     montant_tva NUMERIC(12,2) NOT NULL,

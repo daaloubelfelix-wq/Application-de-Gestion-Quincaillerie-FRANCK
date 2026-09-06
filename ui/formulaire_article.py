@@ -66,6 +66,8 @@ class FormulaireArticle(QDialog):
         boutons = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel
         )
+        boutons.button(QDialogButtonBox.StandardButton.Save).setText("Enregistrer")
+        boutons.button(QDialogButtonBox.StandardButton.Cancel).setText("Annuler")
         boutons.accepted.connect(self._valider)
         boutons.rejected.connect(self.reject)
         layout.addRow(boutons)

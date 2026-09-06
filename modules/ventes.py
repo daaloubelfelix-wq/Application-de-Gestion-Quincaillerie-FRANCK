@@ -132,34 +132,43 @@ def commandes_en_attente(site_id=None):
     )
 
 
-def encaisser_commande(vente_id, utilisateur_caisse):
+def encaisser_commande(vente_id, utilisateur_caisse, mode_paiement):
     """
     Encaisse une commande en attente : crée la recette comptable (c'est elle
     qui compte dans les recettes du jour) et marque la commande payée.
+    mode_paiement : voir modules/paiement.py (especes, orange_money,
+    mtn_momo, credit_client, autre).
     """
+    from modules.paiement import LIBELLES_MODES_PAIEMENT, libelle_mode_paiement
+
+    if mode_paiement not in LIBELLES_MODES_PAIEMENT:
+        raise ValueError("Mode de paiement invalide.")
+
     with Database.transaction() as cur:
         cur.execute(
             """
             UPDATE ventes
-            SET statut = 'payee', utilisateur_caisse_id = %s, date_encaissement = NOW()
+            SET statut = 'payee', utilisateur_caisse_id = %s,
+                date_encaissement = NOW(), mode_paiement = %s
             WHERE id = %s AND statut = 'en_attente'
             RETURNING site_id, total_ttc
             """,
-            (utilisateur_caisse["id"], vente_id),
+            (utilisateur_caisse["id"], mode_paiement, vente_id),
         )
         vente = cur.fetchone()
         if vente is None:
             raise ValueError("Cette commande n'existe pas ou a déjà été traitée.")
 
+        description = f"Encaissement commande client ({libelle_mode_paiement(mode_paiement)})"
         cur.execute(
             """
             INSERT INTO transactions (site_id, utilisateur_id, type, montant, description, vente_id)
-            VALUES (%s, %s, 'recette', %s, 'Encaissement commande client', %s)
+            VALUES (%s, %s, 'recette', %s, %s, %s)
             """,
-            (vente["site_id"], utilisateur_caisse["id"], vente["total_ttc"], vente_id),
+            (vente["site_id"], utilisateur_caisse["id"], vente["total_ttc"], description, vente_id),
         )
 
-    return {"id": vente_id, "total_ttc": vente["total_ttc"]}
+    return {"id": vente_id, "total_ttc": vente["total_ttc"], "mode_paiement": mode_paiement}
 
 
 def annuler_commande(vente_id, utilisateur):

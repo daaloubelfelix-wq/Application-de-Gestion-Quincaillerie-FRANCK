@@ -1,9 +1,11 @@
 from PyQt6.QtWidgets import (
-    QDialog, QFormLayout, QLineEdit, QComboBox, QDialogButtonBox, QMessageBox
+    QDialog, QFormLayout, QHBoxLayout, QWidget, QLineEdit, QPushButton,
+    QComboBox, QDialogButtonBox, QMessageBox
 )
 
 from database import Database
 from modules.utilisateurs import creer_utilisateur
+from ui.icones import icone_oeil
 
 
 class FormulaireUtilisateur(QDialog):
@@ -22,6 +24,22 @@ class FormulaireUtilisateur(QDialog):
         self.champ_mot_de_passe = QLineEdit()
         self.champ_mot_de_passe.setEchoMode(QLineEdit.EchoMode.Password)
 
+        self.bouton_oeil = QPushButton()
+        self.bouton_oeil.setObjectName("boutonOeil")
+        self.bouton_oeil.setCheckable(True)
+        self.bouton_oeil.setIcon(icone_oeil(ouvert=False))
+        self.bouton_oeil.setToolTip("Afficher le mot de passe")
+        self.bouton_oeil.setFixedWidth(36)
+        self.bouton_oeil.clicked.connect(self._basculer_visibilite_mot_de_passe)
+
+        ligne_mot_de_passe = QHBoxLayout()
+        ligne_mot_de_passe.setSpacing(6)
+        ligne_mot_de_passe.setContentsMargins(0, 0, 0, 0)
+        ligne_mot_de_passe.addWidget(self.champ_mot_de_passe)
+        ligne_mot_de_passe.addWidget(self.bouton_oeil)
+        conteneur_mot_de_passe = QWidget()
+        conteneur_mot_de_passe.setLayout(ligne_mot_de_passe)
+
         self.champ_role = QComboBox()
         self.champ_role.addItem("Agent stock", "agent_stock")
         self.champ_role.addItem("Agent comptabilité", "agent_comptabilite")
@@ -34,13 +52,15 @@ class FormulaireUtilisateur(QDialog):
 
         layout.addRow("Nom complet", self.champ_nom)
         layout.addRow("Identifiant", self.champ_identifiant)
-        layout.addRow("Mot de passe initial", self.champ_mot_de_passe)
+        layout.addRow("Mot de passe initial", conteneur_mot_de_passe)
         layout.addRow("Rôle", self.champ_role)
         layout.addRow("Site", self.champ_site)
 
         boutons = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel
         )
+        boutons.button(QDialogButtonBox.StandardButton.Save).setText("Enregistrer")
+        boutons.button(QDialogButtonBox.StandardButton.Cancel).setText("Annuler")
         boutons.accepted.connect(self._valider)
         boutons.rejected.connect(self.reject)
         layout.addRow(boutons)
@@ -49,6 +69,14 @@ class FormulaireUtilisateur(QDialog):
 
     def _basculer_site(self, texte_role):
         self.champ_site.setEnabled(texte_role != "Responsable")
+
+    def _basculer_visibilite_mot_de_passe(self):
+        visible = self.bouton_oeil.isChecked()
+        self.champ_mot_de_passe.setEchoMode(
+            QLineEdit.EchoMode.Normal if visible else QLineEdit.EchoMode.Password
+        )
+        self.bouton_oeil.setIcon(icone_oeil(ouvert=visible))
+        self.bouton_oeil.setToolTip("Masquer le mot de passe" if visible else "Afficher le mot de passe")
 
     def _valider(self):
         try:

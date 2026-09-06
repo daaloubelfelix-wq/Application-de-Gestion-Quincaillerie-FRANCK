@@ -14,6 +14,13 @@ QWidget {
     background-color: #F3F1EC;
 }
 
+/* Les étiquettes ne doivent jamais peindre leur propre fond : sinon elles
+   affichent un rectangle de la couleur ci-dessus par-dessus la carte ou
+   l'illustration qui les contient. */
+QLabel {
+    background: transparent;
+}
+
 /* ---------- Boutons ---------- */
 QPushButton {
     background-color: #B8710F;
@@ -129,20 +136,13 @@ QDialog {
 }
 
 /* ---------- Écran de connexion ---------- */
-QFrame#banniereConnexion {
-    background-color: #3D5066;
-}
-QLabel#titreConnexion {
-    color: #FFFFFF;
-    font-size: 20px;
-    font-weight: 700;
-}
-QLabel#sousTitreConnexion {
-    color: #C7D3DD;
-    font-size: 12px;
+QWidget#panneauConnexion {
+    background-color: #FBFAF7;
 }
 QFrame#carteConnexionEcran {
-    background-color: #F3F1EC;
+    background-color: #FFFFFF;
+    border: 1px solid #DDD7C9;
+    border-radius: 10px;
 }
 QLabel#texteErreur {
     color: #A8431C;
@@ -151,4 +151,17 @@ QLabel#texteErreur {
 QFrame#carteConnexionEcran QPushButton {
     padding: 10px 16px;
     font-size: 13px;
+}
+QPushButton#boutonOeil {
+    background-color: #FFFFFF;
+    border: 1px solid #DDD7C9;
+    border-radius: 6px;
+    padding: 0;
+}
+QPushButton#boutonOeil:hover {
+    background-color: #F1EBDD;
+}
+QPushButton#boutonOeil:checked {
+    background-color: #F3E2B8;
+    border: 1px solid #B8710F;
 }

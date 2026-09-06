@@ -5,6 +5,7 @@ from PyQt6.QtWidgets import (
 
 from modules.utilisateurs import lister_utilisateurs, activer_desactiver, reinitialiser_tentatives
 from ui.formulaire_utilisateur import FormulaireUtilisateur
+from ui.confirmation import confirmer
 
 
 class GestionUtilisateurs(QWidget):
@@ -65,14 +66,11 @@ class GestionUtilisateurs(QWidget):
             return
 
         if actif_actuel:
-            reponse = QMessageBox.question(
+            if not confirmer(
                 self,
                 "Confirmer la désactivation",
                 "Ce compte ne pourra plus se connecter tant qu'il n'aura pas été réactivé. Continuer ?",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                QMessageBox.StandardButton.No,
-            )
-            if reponse != QMessageBox.StandardButton.Yes:
+            ):
                 return
 
         activer_desactiver(utilisateur_id, not actif_actuel)
