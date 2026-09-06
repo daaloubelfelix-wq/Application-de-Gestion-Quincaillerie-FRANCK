@@ -131,10 +131,7 @@ class LoginWindow(QWidget):
         self.label_erreur.setWordWrap(True)
         self.label_erreur.hide()
 
-        aide = QLabel(
-            "Mot de passe oublié ? Veuillez contacter le responsable.\n"
-            "Besoin d'aide ? 699 861217 / 654 226348"
-        )
+        aide = QLabel("Mot de passe oublié ? Veuillez contacter le responsable.")
         aide.setObjectName("texteAideConnexion")
         aide.setAlignment(Qt.AlignmentFlag.AlignCenter)
         aide.setWordWrap(True)
