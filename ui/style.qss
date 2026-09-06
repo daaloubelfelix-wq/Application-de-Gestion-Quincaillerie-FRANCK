@@ -150,132 +150,153 @@ QPushButton#boutonOeil:checked {
     border: 1px solid #B8710F;
 }
 
-/* ---------- Écran d'accueil et de connexion (thème sombre) ---------- */
+/* ---------- Écran d'accueil et de connexion (thème sombre, façon
+   tableau de bord logiciel) ---------- */
 QScrollArea#defilementAccueil {
-    background-color: #17212C;
+    background-color: #0F0F0F;
     border: none;
 }
 QWidget#ecranAccueil {
-    background-color: #17212C;
+    background-color: #0F0F0F;
 }
 QWidget#ecranAccueil QLabel {
-    color: #E7ECF1;
+    color: #FFFFFF;
 }
 
-QWidget#enteteAccueil {
-    background-color: #121A23;
-    border-bottom: 1px solid #232F3B;
+QWidget#barreFenetreAccueil {
+    background-color: #1A1A1A;
+    border-bottom: 1px solid #333333;
 }
-QLabel#logoAccueil {
-    font-size: 18px;
+QLabel#nomAppBarre {
+    font-size: 15px;
     font-weight: 700;
     color: #FFFFFF;
 }
-QLabel#sloganAccueil {
-    color: #8FA0AF;
-    font-size: 11px;
+QLabel#pastilleFenetre {
+    border-radius: 6px;
+}
+QLabel#navConnexionBarre {
+    color: #AAAAAA;
+    font-size: 12px;
 }
 
 QWidget#heroAccueil {
-    background-color: #17212C;
+    background-color: #0F0F0F;
 }
 QWidget#colonneTexteHero {
     background-color: transparent;
 }
 QLabel#titreHero {
-    font-size: 27px;
+    font-size: 30px;
     font-weight: 800;
     color: #FFFFFF;
 }
 QLabel#sousTitreHero {
-    color: #AAB8C4;
-    font-size: 13px;
+    color: #AAAAAA;
+    font-size: 14px;
 }
 QFrame#cadrePhoto {
-    background-color: transparent;
+    background-color: #1A1A1A;
+    border: 1px solid #333333;
+    border-radius: 16px;
 }
 
 QFrame#carteConnexionHero {
-    background-color: #1F2B38;
-    border: 1px solid #33465A;
-    border-radius: 12px;
+    background-color: #1A1A1A;
+    border: 1px solid #2A2A2A;
+    border-radius: 14px;
 }
 QLabel#titreCarteConnexion {
-    font-size: 15px;
+    font-size: 16px;
     font-weight: 700;
     color: #FFFFFF;
 }
 QFrame#carteConnexionHero QLineEdit {
-    background-color: #17212C;
-    border: 1px solid #33465A;
+    background-color: #101010;
+    border: 1px solid #333333;
     color: #FFFFFF;
-    selection-background-color: #E8A23A;
+    selection-background-color: #FF7A18;
 }
 QFrame#carteConnexionHero QLineEdit:focus {
-    border: 1px solid #E8A23A;
+    border: 1px solid #FF7A18;
 }
 QPushButton#boutonConnexionHero {
-    background-color: #E8A23A;
-    color: #17212C;
-    padding: 10px 16px;
-    font-size: 13px;
+    background-color: #FF7A18;
+    color: #FFFFFF;
+    padding: 12px 20px;
+    font-size: 14px;
+    border-radius: 8px;
 }
 QPushButton#boutonConnexionHero:hover {
-    background-color: #F0B458;
+    background-color: #FF8B36;
 }
 QPushButton#boutonConnexionHero:pressed {
-    background-color: #D08F2E;
+    background-color: #E56A10;
 }
 QPushButton#boutonOeilHero {
-    background-color: #17212C;
-    border: 1px solid #33465A;
+    background-color: #101010;
+    border: 1px solid #333333;
     border-radius: 6px;
     padding: 0;
 }
 QPushButton#boutonOeilHero:hover {
-    background-color: #26364A;
+    background-color: #202020;
 }
 QPushButton#boutonOeilHero:checked {
-    background-color: #2C3B4A;
-    border: 1px solid #E8A23A;
+    background-color: #262626;
+    border: 1px solid #FF7A18;
 }
 QLabel#texteErreurHero {
     color: #FF8A65;
     font-size: 12px;
 }
 QLabel#texteAideHero {
-    color: #7C8B99;
+    color: #777777;
     font-size: 11px;
 }
 
-QWidget#sectionFonctionnalites {
-    background-color: #17212C;
-}
-QFrame#carteFonctionnalite {
-    background-color: #1F2B38;
-    border: 1px solid #2C3B4A;
+QFrame#badgeAccueil {
+    background-color: #1E1E1E;
+    border: 1px solid #333333;
     border-radius: 10px;
 }
+QLabel#texteBadgeAccueil {
+    color: #AAAAAA;
+    font-size: 12px;
+}
+
+QWidget#sectionFonctionnalites {
+    background-color: #0F0F0F;
+}
+QFrame#carteFonctionnalite {
+    background-color: #1A1A1A;
+    border: 1px solid #2A2A2A;
+    border-radius: 16px;
+}
+QLabel#pastilleIconeCarte {
+    background-color: #FF7A18;
+    border-radius: 30px;
+}
 QLabel#titreCarteFonctionnalite {
-    font-size: 13px;
+    font-size: 15px;
     font-weight: 700;
     color: #FFFFFF;
 }
 QLabel#texteCarteFonctionnalite {
-    color: #97A6B4;
-    font-size: 11px;
+    color: #999999;
+    font-size: 12px;
 }
 
 QFrame#piedAccueil {
-    background-color: #121A23;
-    border-top: 1px solid #232F3B;
+    background-color: #1A1A1A;
+    border-top: 1px solid #333333;
 }
 QLabel#texteFooterAccueil {
-    color: #7C8B99;
+    color: #777777;
     font-size: 11px;
 }
 QLabel#contactAccueil {
-    color: #E8A23A;
+    color: #FF7A18;
     font-weight: 700;
     font-size: 12px;
 }

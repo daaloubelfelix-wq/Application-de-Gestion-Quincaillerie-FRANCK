@@ -31,8 +31,8 @@ class IllustrationOutils(QWidget):
             peintre.setClipPath(chemin)
 
         degrade = QLinearGradient(0, 0, largeur, hauteur)
-        degrade.setColorAt(0.0, QColor("#3D5066"))
-        degrade.setColorAt(1.0, QColor("#22303F"))
+        degrade.setColorAt(0.0, QColor("#2A2A2A"))
+        degrade.setColorAt(1.0, QColor("#141414"))
         peintre.fillRect(self.rect(), degrade)
 
         self._dessiner_texture_pegboard(peintre, largeur, hauteur)
@@ -77,7 +77,7 @@ class IllustrationOutils(QWidget):
         """Rail horizontal sur lequel les outils sont accrochés."""
         peintre.save()
         peintre.setPen(Qt.PenStyle.NoPen)
-        peintre.setBrush(QColor("#18222C"))
+        peintre.setBrush(QColor("#0F0F0F"))
         rail = QRectF(largeur * 0.06, y_rail - 5, largeur * 0.88, 9)
         peintre.drawRoundedRect(rail, 3, 3)
         peintre.setPen(QPen(QColor(255, 255, 255, 45), 1))
@@ -87,7 +87,7 @@ class IllustrationOutils(QWidget):
     def _dessiner_crochet(self, peintre, x, y_rail):
         """Petit crochet reliant le rail à l'outil suspendu."""
         peintre.save()
-        peintre.setPen(QPen(QColor("#8FA0AF"), 2))
+        peintre.setPen(QPen(QColor("#5A5A5A"), 2))
         peintre.drawLine(QPointF(x, y_rail + 4), QPointF(x, y_rail + 16))
         peintre.restore()
 
@@ -104,7 +104,7 @@ class IllustrationOutils(QWidget):
             "Ets Quincaillerie Franck",
         )
 
-        peintre.setPen(QPen(QColor("#C7D3DD")))
+        peintre.setPen(QPen(QColor("#E5E5E5")))
         police_sous_titre = QFont("Segoe UI", max(9, int(largeur * 0.018)))
         peintre.setFont(police_sous_titre)
         zone_sous_titre = QRectF(largeur * 0.08, hauteur * 0.90, largeur * 0.84, hauteur * 0.07)
@@ -116,11 +116,11 @@ class IllustrationOutils(QWidget):
         peintre.translate(x, y)
         peintre.setPen(Qt.PenStyle.NoPen)
 
-        peintre.setBrush(QColor("#EAE5D7"))
+        peintre.setBrush(QColor("#E5E5E5"))
         tete = QRectF(-taille * 0.32, 0, taille * 0.64, taille * 0.24)
         peintre.drawRoundedRect(tete, taille * 0.05, taille * 0.05)
 
-        peintre.setBrush(QColor("#B8710F"))
+        peintre.setBrush(QColor("#FF7A18"))
         manche = QRectF(-taille * 0.06, taille * 0.2, taille * 0.12, taille * 0.62)
         peintre.drawRoundedRect(manche, taille * 0.03, taille * 0.03)
         peintre.restore()
@@ -130,14 +130,14 @@ class IllustrationOutils(QWidget):
         peintre.save()
         peintre.translate(x, y)
         peintre.setPen(Qt.PenStyle.NoPen)
-        peintre.setBrush(QColor("#EAE5D7"))
+        peintre.setBrush(QColor("#E5E5E5"))
 
         centre_anneau = QPointF(0, taille * 0.18)
         peintre.drawEllipse(centre_anneau, taille * 0.24, taille * 0.24)
-        peintre.setBrush(QColor("#22303F"))
+        peintre.setBrush(QColor("#141414"))
         peintre.drawEllipse(centre_anneau, taille * 0.12, taille * 0.12)
 
-        peintre.setBrush(QColor("#EAE5D7"))
+        peintre.setBrush(QColor("#E5E5E5"))
         manche = QRectF(-taille * 0.07, taille * 0.36, taille * 0.14, taille * 0.48)
         peintre.drawRoundedRect(manche, taille * 0.04, taille * 0.04)
         peintre.restore()
@@ -148,11 +148,11 @@ class IllustrationOutils(QWidget):
         peintre.translate(x, y)
         peintre.setPen(Qt.PenStyle.NoPen)
 
-        peintre.setBrush(QColor("#B8710F"))
+        peintre.setBrush(QColor("#FF7A18"))
         manche = QRectF(-taille * 0.15, 0, taille * 0.3, taille * 0.32)
         peintre.drawRoundedRect(manche, taille * 0.08, taille * 0.08)
 
-        peintre.setBrush(QColor("#C7D3DD"))
+        peintre.setBrush(QColor("#E5E5E5"))
         tige = QRectF(-taille * 0.045, taille * 0.28, taille * 0.09, taille * 0.5)
         peintre.drawRoundedRect(tige, taille * 0.02, taille * 0.02)
         peintre.restore()
@@ -164,12 +164,12 @@ class IllustrationOutils(QWidget):
         peintre.setPen(Qt.PenStyle.NoPen)
 
         centre = QPointF(0, taille * 0.24)
-        peintre.setBrush(QColor("#EAE5D7"))
+        peintre.setBrush(QColor("#E5E5E5"))
         peintre.drawEllipse(centre, taille * 0.26, taille * 0.26)
-        peintre.setBrush(QColor("#B8710F"))
+        peintre.setBrush(QColor("#FF7A18"))
         peintre.drawEllipse(centre, taille * 0.1, taille * 0.1)
 
-        peintre.setBrush(QColor("#C7D3DD"))
+        peintre.setBrush(QColor("#E5E5E5"))
         languette = QRectF(taille * 0.16, taille * 0.16, taille * 0.18, taille * 0.1)
         peintre.drawRoundedRect(languette, taille * 0.02, taille * 0.02)
         peintre.restore()
@@ -179,7 +179,7 @@ class IllustrationOutils(QWidget):
         peintre.translate(x, y + taille * 0.5)
 
         peintre.setPen(Qt.PenStyle.NoPen)
-        peintre.setBrush(QColor("#EAE5D7"))
+        peintre.setBrush(QColor("#E5E5E5"))
         corps = QPolygonF([
             QPointF(-taille * 0.36, -taille * 0.28),
             QPointF(taille * 0.36, -taille * 0.28),
@@ -188,11 +188,11 @@ class IllustrationOutils(QWidget):
         ])
         peintre.drawPolygon(corps)
 
-        peintre.setBrush(QColor("#B8710F"))
+        peintre.setBrush(QColor("#FF7A18"))
         couvercle = QRectF(-taille * 0.42, -taille * 0.4, taille * 0.84, taille * 0.14)
         peintre.drawRoundedRect(couvercle, taille * 0.04, taille * 0.04)
 
-        peintre.setPen(QPen(QColor("#C7D3DD"), taille * 0.05))
+        peintre.setPen(QPen(QColor("#E5E5E5"), taille * 0.05))
         peintre.drawArc(
             QRectF(-taille * 0.26, -taille * 0.62, taille * 0.52, taille * 0.5),
             20 * 16, 140 * 16,

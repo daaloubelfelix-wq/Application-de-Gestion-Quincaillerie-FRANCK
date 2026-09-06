@@ -1,12 +1,14 @@
 """
 Écran d'accueil et de connexion.
-Présentation façon page d'accueil : en-tête avec le nom de la boutique,
-un grand titre d'accroche avec le formulaire de connexion intégré, une
-illustration des outils en vitrine, des cartes de fonctionnalités et un
-pied de page avec les coordonnées de contact. Le rôle et le site sont
-déterminés automatiquement en base de données à partir de l'identifiant.
+Reprend la mise en page d'un tableau de bord logiciel (barre de fenêtre,
+grand titre d'accroche avec le formulaire de connexion intégré, cartes de
+fonctionnalités, pied de page) — sans aucune partie essai, tarif ou
+licence : ce n'est pas une vitrine commerciale mais l'écran de connexion
+réel de l'application. Le rôle et le site sont déterminés automatiquement
+en base de données à partir de l'identifiant.
 """
 
+from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton,
     QMessageBox, QFrame, QScrollArea
@@ -17,7 +19,8 @@ from ui.icones import icone_oeil
 from ui.illustration_outils import IllustrationOutils
 from ui.pictogrammes import pictogramme_stock, pictogramme_ventes, pictogramme_rapports
 
-_COULEUR_OEIL = "#C7D3DD"
+_COULEUR_OEIL = "#999999"
+_COULEUR_ICONE_CARTE = "#FFFFFF"
 
 
 class LoginWindow(QWidget):
@@ -25,7 +28,7 @@ class LoginWindow(QWidget):
         super().__init__()
         self.on_login_success = on_login_success
         self.setWindowTitle("Ets Quincaillerie Franck — Connexion")
-        self.resize(1080, 780)
+        self.resize(1080, 800)
         self.setMinimumSize(860, 600)
         self._construire_interface()
 
@@ -45,7 +48,7 @@ class LoginWindow(QWidget):
         layout_contenu.setContentsMargins(0, 0, 0, 0)
         layout_contenu.setSpacing(0)
 
-        layout_contenu.addWidget(self._construire_entete())
+        layout_contenu.addWidget(self._construire_barre_fenetre())
         layout_contenu.addWidget(self._construire_hero())
         layout_contenu.addWidget(self._construire_fonctionnalites())
         layout_contenu.addWidget(self._construire_pied_de_page())
@@ -56,70 +59,81 @@ class LoginWindow(QWidget):
         layout_fenetre.addWidget(zone_defilement)
         self.setLayout(layout_fenetre)
 
-    def _construire_entete(self):
-        entete = QWidget()
-        entete.setObjectName("enteteAccueil")
+    def _construire_barre_fenetre(self):
+        barre = QWidget()
+        barre.setObjectName("barreFenetreAccueil")
         layout = QHBoxLayout()
-        layout.setContentsMargins(40, 22, 40, 22)
+        layout.setContentsMargins(24, 14, 24, 14)
+        layout.setSpacing(14)
 
-        colonne_logo = QVBoxLayout()
-        colonne_logo.setSpacing(0)
-        logo = QLabel("🔨 Ets Quincaillerie Franck")
-        logo.setObjectName("logoAccueil")
-        slogan = QLabel("Quincaillerie générale — Batouri")
-        slogan.setObjectName("sloganAccueil")
-        colonne_logo.addWidget(logo)
-        colonne_logo.addWidget(slogan)
+        pastilles = QHBoxLayout()
+        pastilles.setSpacing(7)
+        for couleur in ("#FF5F56", "#FFBD2E", "#27C93F"):
+            pastille = QLabel()
+            pastille.setObjectName("pastilleFenetre")
+            pastille.setFixedSize(11, 11)
+            pastille.setStyleSheet(f"background-color: {couleur}; border-radius: 5px;")
+            pastilles.addWidget(pastille)
 
-        layout.addLayout(colonne_logo)
+        nom_app = QLabel("🔨 Ets Quincaillerie Franck")
+        nom_app.setObjectName("nomAppBarre")
+
+        indicateur = QLabel("Connexion")
+        indicateur.setObjectName("navConnexionBarre")
+
+        layout.addLayout(pastilles)
+        layout.addWidget(nom_app)
         layout.addStretch()
+        layout.addWidget(indicateur)
 
-        entete.setLayout(layout)
-        return entete
+        barre.setLayout(layout)
+        return barre
 
     def _construire_hero(self):
         hero = QWidget()
         hero.setObjectName("heroAccueil")
         layout = QHBoxLayout()
-        layout.setContentsMargins(40, 10, 40, 34)
-        layout.setSpacing(36)
+        layout.setContentsMargins(48, 40, 48, 40)
+        layout.setSpacing(40)
 
         colonne_texte = QVBoxLayout()
         colonne_texte.setSpacing(14)
 
-        titre = QLabel("La gestion de votre quincaillerie, simplifiée")
+        titre = QLabel("Gérez votre\nquincaillerie\nfacilement")
         titre.setObjectName("titreHero")
         titre.setWordWrap(True)
 
         sous_titre = QLabel(
-            "Stock, commandes, caisse et rapports réunis dans une seule application, "
-            "conçue pour Ets Quincaillerie Franck."
+            "Stock, commandes, caisse et rapports réunis dans une seule "
+            "application, conçue pour Ets Quincaillerie Franck à Batouri."
         )
         sous_titre.setObjectName("sousTitreHero")
         sous_titre.setWordWrap(True)
 
         colonne_texte.addWidget(titre)
         colonne_texte.addWidget(sous_titre)
-        colonne_texte.addSpacing(8)
+        colonne_texte.addSpacing(10)
         colonne_texte.addWidget(self._construire_carte_connexion())
+        colonne_texte.addSpacing(4)
+        colonne_texte.addWidget(self._construire_badge_contact())
         colonne_texte.addStretch()
 
         conteneur_texte = QWidget()
         conteneur_texte.setObjectName("colonneTexteHero")
         conteneur_texte.setLayout(colonne_texte)
 
-        illustration = IllustrationOutils(rayon_coins=18, afficher_titre=False)
-        illustration.setMinimumSize(320, 320)
+        illustration = IllustrationOutils(rayon_coins=12, afficher_titre=False)
+        illustration.setMinimumSize(300, 300)
 
         cadre_photo = QFrame()
         cadre_photo.setObjectName("cadrePhoto")
         layout_photo = QVBoxLayout()
-        layout_photo.setContentsMargins(0, 0, 0, 0)
+        layout_photo.setContentsMargins(15, 15, 15, 15)
         layout_photo.addWidget(illustration)
         cadre_photo.setLayout(layout_photo)
 
-        layout.addWidget(conteneur_texte, stretch=3)
-        layout.addWidget(cadre_photo, stretch=2)
+        layout.addWidget(conteneur_texte, stretch=6)
+        layout.addWidget(cadre_photo, stretch=4)
 
         hero.setLayout(layout)
         return hero
@@ -155,7 +169,7 @@ class LoginWindow(QWidget):
         ligne_mot_de_passe.addWidget(self.champ_mot_de_passe)
         ligne_mot_de_passe.addWidget(self.bouton_oeil)
 
-        bouton_connexion = QPushButton("Se connecter")
+        bouton_connexion = QPushButton("➜  Se connecter")
         bouton_connexion.setObjectName("boutonConnexionHero")
         bouton_connexion.clicked.connect(self._tenter_connexion)
 
@@ -177,20 +191,34 @@ class LoginWindow(QWidget):
         carte.setLayout(layout)
         return carte
 
+    def _construire_badge_contact(self):
+        badge = QFrame()
+        badge.setObjectName("badgeAccueil")
+        layout = QHBoxLayout()
+        layout.setContentsMargins(15, 10, 15, 10)
+
+        texte = QLabel("📞  Besoin d'aide pour vous connecter ? Appelez le 699 861217 / 654 226348")
+        texte.setObjectName("texteBadgeAccueil")
+        texte.setWordWrap(True)
+
+        layout.addWidget(texte)
+        badge.setLayout(layout)
+        return badge
+
     def _construire_fonctionnalites(self):
         section = QWidget()
         section.setObjectName("sectionFonctionnalites")
         layout = QHBoxLayout()
-        layout.setContentsMargins(40, 10, 40, 34)
+        layout.setContentsMargins(48, 0, 48, 40)
         layout.setSpacing(20)
 
         cartes = [
-            (pictogramme_stock(), "Gestion des stocks",
-             "Suivez vos articles, vos quantités et vos seuils d'alerte en temps réel."),
-            (pictogramme_ventes(), "Commandes & Caisse",
+            (pictogramme_stock(couleur=_COULEUR_ICONE_CARTE, taille=26), "Gestion des stocks",
+             "Suivi en temps réel des entrées, sorties et alertes de stock faible."),
+            (pictogramme_ventes(couleur=_COULEUR_ICONE_CARTE, taille=26), "Commandes & Caisse",
              "La comptabilité enregistre la commande, le responsable encaisse à la caisse."),
-            (pictogramme_rapports(), "Rapports & Statistiques",
-             "Visualisez vos ventes, vos recettes et vos produits les plus vendus."),
+            (pictogramme_rapports(couleur=_COULEUR_ICONE_CARTE, taille=26), "Rapports & Statistiques",
+             "Ventes, recettes et produits les plus vendus, en FCFA."),
         ]
 
         for icone, titre_carte, description in cartes:
@@ -203,21 +231,27 @@ class LoginWindow(QWidget):
         carte = QFrame()
         carte.setObjectName("carteFonctionnalite")
         layout = QVBoxLayout()
-        layout.setContentsMargins(20, 18, 20, 18)
-        layout.setSpacing(8)
+        layout.setContentsMargins(24, 26, 24, 26)
+        layout.setSpacing(10)
+        layout.setAlignment(Qt.AlignmentFlag.AlignHCenter)
 
         pastille_icone = QLabel()
-        pastille_icone.setPixmap(icone.pixmap(30, 30))
+        pastille_icone.setObjectName("pastilleIconeCarte")
+        pastille_icone.setFixedSize(60, 60)
+        pastille_icone.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        pastille_icone.setPixmap(icone.pixmap(26, 26))
 
         titre = QLabel(titre_carte)
         titre.setObjectName("titreCarteFonctionnalite")
+        titre.setAlignment(Qt.AlignmentFlag.AlignCenter)
         titre.setWordWrap(True)
 
         texte = QLabel(description)
         texte.setObjectName("texteCarteFonctionnalite")
+        texte.setAlignment(Qt.AlignmentFlag.AlignCenter)
         texte.setWordWrap(True)
 
-        layout.addWidget(pastille_icone)
+        layout.addWidget(pastille_icone, alignment=Qt.AlignmentFlag.AlignHCenter)
         layout.addWidget(titre)
         layout.addWidget(texte)
         carte.setLayout(layout)
@@ -227,7 +261,7 @@ class LoginWindow(QWidget):
         pied = QFrame()
         pied.setObjectName("piedAccueil")
         layout = QHBoxLayout()
-        layout.setContentsMargins(40, 18, 40, 18)
+        layout.setContentsMargins(48, 18, 48, 18)
 
         adresse = QLabel("Ets Quincaillerie Franck — Batouri, Région de l'Est, Cameroun")
         adresse.setObjectName("texteFooterAccueil")
