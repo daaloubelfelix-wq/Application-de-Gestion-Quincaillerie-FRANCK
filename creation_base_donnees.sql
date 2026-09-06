@@ -105,6 +105,25 @@ CREATE TABLE historique_prix_articles (
     date_modification TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
+-- ------------------------------------------------------------
+-- Table : historique_modifications_articles
+-- Même principe que ci-dessus, mais pour les autres champs qu'un
+-- agent stock peut modifier (nom, unité, seuil d'alerte) : sans trace,
+-- impossible de savoir qui a changé un seuil ou renommé un article,
+-- et quand. Une ligne par champ modifié à chaque enregistrement.
+-- ------------------------------------------------------------
+CREATE TABLE historique_modifications_articles (
+    id SERIAL PRIMARY KEY,
+    article_id INTEGER NOT NULL REFERENCES articles(id) ON DELETE CASCADE,
+    utilisateur_id INTEGER NOT NULL REFERENCES utilisateurs(id),
+    champ VARCHAR(30) NOT NULL,
+    ancienne_valeur VARCHAR(200),
+    nouvelle_valeur VARCHAR(200),
+    date_modification TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_historique_modif_article ON historique_modifications_articles(article_id);
+
 CREATE INDEX idx_historique_prix_article ON historique_prix_articles(article_id);
 
 -- ------------------------------------------------------------

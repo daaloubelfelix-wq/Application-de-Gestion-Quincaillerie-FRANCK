@@ -66,11 +66,14 @@ def modifier_article(article_id, nom, categorie, unite, prix_achat, prix_vente,
                       seuil_alerte, utilisateur_id, fournisseur_id=None):
     """
     Toute modification de prix_achat/prix_vente est enregistrée dans
-    historique_prix_articles (qui, quand, ancien montant, nouveau montant) —
-    sans cette traçabilité, un prix modifié en douce ouvre la porte au vol.
-    Le formulaire (ui/formulaire_article.py) réserve déjà ces deux champs
-    au responsable pour un article existant ; ceci est la seconde ligne de
-    défense, côté logique métier.
+    historique_prix_articles (qui, quand, ancien montant, nouveau montant) ;
+    toute modification de nom/unité/seuil_alerte est enregistrée dans
+    historique_modifications_articles — sans cette traçabilité, un prix
+    modifié en douce ouvre la porte au vol, et un seuil ou un nom changé
+    sans laisser de trace empêche de savoir qui a fait quoi. Le formulaire
+    (ui/formulaire_article.py) réserve déjà les prix au responsable pour
+    un article existant ; ceci est la seconde ligne de défense, côté
+    logique métier.
     """
     if not nom.strip():
         raise ValueError("Le nom de l'article est obligatoire.")
@@ -78,7 +81,10 @@ def modifier_article(article_id, nom, categorie, unite, prix_achat, prix_vente,
         raise ValueError("Le prix de vente ne peut pas être négatif.")
 
     with Database.transaction() as cur:
-        cur.execute("SELECT prix_achat, prix_vente FROM articles WHERE id = %s FOR UPDATE", (article_id,))
+        cur.execute(
+            "SELECT nom, unite, prix_achat, prix_vente, seuil_alerte FROM articles WHERE id = %s FOR UPDATE",
+            (article_id,),
+        )
         article_actuel = cur.fetchone()
         if article_actuel is None:
             raise ValueError("Article introuvable.")
@@ -109,6 +115,22 @@ def modifier_article(article_id, nom, categorie, unite, prix_achat, prix_vente,
                  article_actuel["prix_vente"], prix_vente),
             )
 
+        champs_a_tracer = [
+            ("nom", article_actuel["nom"], nom.strip()),
+            ("unite", article_actuel["unite"], unite),
+            ("seuil_alerte", article_actuel["seuil_alerte"], seuil_alerte),
+        ]
+        for champ, ancienne_valeur, nouvelle_valeur in champs_a_tracer:
+            if str(ancienne_valeur) != str(nouvelle_valeur):
+                cur.execute(
+                    """
+                    INSERT INTO historique_modifications_articles
+                        (article_id, utilisateur_id, champ, ancienne_valeur, nouvelle_valeur)
+                    VALUES (%s, %s, %s, %s, %s)
+                    """,
+                    (article_id, utilisateur_id, champ, str(ancienne_valeur), str(nouvelle_valeur)),
+                )
+
 
 def derniere_modification_prix(article_id):
     """Dernier changement de prix enregistré pour cet article, ou None."""
@@ -124,6 +146,29 @@ def derniere_modification_prix(article_id):
         """,
         (article_id,),
     )
+
+
+_LIBELLES_CHAMPS = {"nom": "nom", "unite": "unité", "seuil_alerte": "seuil d'alerte"}
+
+
+def derniere_modification_champ(article_id):
+    """Dernier changement de nom/unité/seuil enregistré pour cet article,
+    ou None — voir historique_modifications_articles."""
+    resultat = Database.fetch_one(
+        """
+        SELECT h.champ, h.ancienne_valeur, h.nouvelle_valeur, h.date_modification, u.nom_complet
+        FROM historique_modifications_articles h
+        JOIN utilisateurs u ON u.id = h.utilisateur_id
+        WHERE h.article_id = %s
+        ORDER BY h.date_modification DESC
+        LIMIT 1
+        """,
+        (article_id,),
+    )
+    if resultat is None:
+        return None
+    resultat["champ_libelle"] = _LIBELLES_CHAMPS.get(resultat["champ"], resultat["champ"])
+    return resultat
 
 
 def ajuster_stock_manuellement(article_id, type_mouvement, quantite, motif, utilisateur_id):

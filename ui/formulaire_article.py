@@ -10,10 +10,12 @@ par l'agent stock, l'article n'apparaît pas dans la recherche de vente
 (voir modules/ventes.py::rechercher_articles) — pas de vente à 0 FCFA par
 erreur.
 
-Contrôle anti-fraude inchangé : sur un article déjà existant, seul le
-responsable peut changer le prix de vente ; tout changement de prix est
-enregistré dans historique_prix_articles (voir modules/articles.py), pour
-qu'un prix modifié laisse toujours une trace.
+Contrôle anti-fraude : sur un article déjà existant, seul le responsable
+peut changer le prix de vente ; tout changement de prix est enregistré
+dans historique_prix_articles. Le nom, l'unité et le seuil d'alerte sont
+eux aussi tracés (historique_modifications_articles), y compris pour
+l'agent stock — voir modules/articles.py — pour qu'un changement ne
+passe jamais inaperçu, quel que soit le champ.
 """
 
 from PyQt6.QtWidgets import (
@@ -22,7 +24,9 @@ from PyQt6.QtWidgets import (
 )
 
 from database import Database
-from modules.articles import creer_article, modifier_article, derniere_modification_prix
+from modules.articles import (
+    creer_article, modifier_article, derniere_modification_prix, derniere_modification_champ,
+)
 
 UNITES_DISPONIBLES = ["sac", "barre", "unité", "m3", "litre", "kg", "rouleau", "bidon"]
 
@@ -119,18 +123,35 @@ class FormulaireArticle(QDialog):
         self.champ_seuil_alerte.blockSignals(False)
 
     def _afficher_derniere_modification(self, layout):
-        derniere = derniere_modification_prix(self.article["id"])
-        if not derniere or not self.gere_les_montants:
-            return
-        texte = (
-            f"Dernier changement de prix par {derniere['nom_complet']} "
-            f"le {derniere['date_modification'].strftime('%d/%m/%Y %H:%M')} : "
-            f"vente {derniere['ancien_prix_vente']:.0f} → {derniere['nouveau_prix_vente']:.0f} FCFA"
-        )
-        label = QLabel(texte)
-        label.setObjectName("texteAttenue")
-        label.setWordWrap(True)
-        layout.addRow(label)
+        # Changement de prix : visible seulement du responsable, qui est
+        # seul à pouvoir le modifier.
+        if self.gere_les_montants:
+            derniere_prix = derniere_modification_prix(self.article["id"])
+            if derniere_prix:
+                texte = (
+                    f"Dernier changement de prix par {derniere_prix['nom_complet']} "
+                    f"le {derniere_prix['date_modification'].strftime('%d/%m/%Y %H:%M')} : "
+                    f"vente {derniere_prix['ancien_prix_vente']:.0f} → {derniere_prix['nouveau_prix_vente']:.0f} FCFA"
+                )
+                label = QLabel(texte)
+                label.setObjectName("texteAttenue")
+                label.setWordWrap(True)
+                layout.addRow(label)
+
+        # Changement de nom/unité/seuil : visible de tous, y compris
+        # l'agent stock, qui gère justement ces champs.
+        derniere_champ = derniere_modification_champ(self.article["id"])
+        if derniere_champ:
+            texte = (
+                f"Dernière modification par {derniere_champ['nom_complet']} "
+                f"le {derniere_champ['date_modification'].strftime('%d/%m/%Y %H:%M')} : "
+                f"{derniere_champ['champ_libelle']} "
+                f"{derniere_champ['ancienne_valeur']} → {derniere_champ['nouvelle_valeur']}"
+            )
+            label = QLabel(texte)
+            label.setObjectName("texteAttenue")
+            label.setWordWrap(True)
+            layout.addRow(label)
 
     def _pre_remplir(self):
         self.champ_nom.setText(self.article["nom"])
