@@ -11,7 +11,7 @@ REM ============================================================
 python -m venv .venv_empaquetage
 call .venv_empaquetage\Scripts\activate.bat
 
-pip install --upgrade pip
+python -m pip install --upgrade pip
 pip install -r requirements.txt
 pip install -r requirements-empaquetage.txt
 
