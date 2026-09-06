@@ -31,6 +31,10 @@ CREATE TABLE utilisateurs (
     -- le responsable n'est rattaché à aucun site unique (accès à tous)
     actif BOOLEAN NOT NULL DEFAULT TRUE,
     tentatives_echouees INTEGER NOT NULL DEFAULT 0,
+    -- Invite à changer son mot de passe à la première connexion (voir
+    -- ui/login_window.py et ui/dialogue_parametres.py) ; passe à FALSE
+    -- dès que la question a été posée, qu'elle soit acceptée ou non.
+    doit_changer_mot_de_passe BOOLEAN NOT NULL DEFAULT TRUE,
     date_creation TIMESTAMP NOT NULL DEFAULT NOW()
 );
 

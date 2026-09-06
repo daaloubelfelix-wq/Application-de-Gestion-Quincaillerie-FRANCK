@@ -20,7 +20,7 @@ def authentifier(identifiant: str, mot_de_passe: str):
         """
         SELECT u.id, u.nom_complet, u.identifiant, u.mot_de_passe_hash,
                u.role, u.site_id, u.actif, u.tentatives_echouees,
-               s.nom AS site_nom
+               u.doit_changer_mot_de_passe, s.nom AS site_nom
         FROM utilisateurs u
         LEFT JOIN sites s ON s.id = u.site_id
         WHERE u.identifiant = %s
@@ -85,6 +85,45 @@ def changer_mot_de_passe(utilisateur_id: int, ancien_mot_de_passe: str, nouveau_
         raise ValueError("L'ancien mot de passe saisi est incorrect.")
 
     Database.execute(
-        "UPDATE utilisateurs SET mot_de_passe_hash = %s WHERE id = %s",
+        "UPDATE utilisateurs SET mot_de_passe_hash = %s, doit_changer_mot_de_passe = FALSE WHERE id = %s",
         (hacher_mot_de_passe(nouveau_mot_de_passe), utilisateur_id),
+    )
+
+
+def changer_identifiant(utilisateur_id: int, mot_de_passe_actuel: str, nouvel_identifiant: str):
+    """Permet à un utilisateur connecté de changer lui-même son
+    identifiant de connexion, en confirmant son mot de passe actuel."""
+    nouvel_identifiant = nouvel_identifiant.strip()
+    if not nouvel_identifiant:
+        raise ValueError("L'identifiant ne peut pas être vide.")
+
+    utilisateur = Database.fetch_one(
+        "SELECT mot_de_passe_hash FROM utilisateurs WHERE id = %s", (utilisateur_id,)
+    )
+    if utilisateur is None:
+        raise ValueError("Ce compte n'existe plus.")
+
+    if not bcrypt.checkpw(
+        mot_de_passe_actuel.encode("utf-8"), utilisateur["mot_de_passe_hash"].encode("utf-8")
+    ):
+        raise ValueError("Le mot de passe actuel saisi est incorrect.")
+
+    deja_pris = Database.fetch_one(
+        "SELECT id FROM utilisateurs WHERE identifiant = %s AND id != %s",
+        (nouvel_identifiant, utilisateur_id),
+    )
+    if deja_pris:
+        raise ValueError(f"L'identifiant '{nouvel_identifiant}' est déjà utilisé.")
+
+    Database.execute(
+        "UPDATE utilisateurs SET identifiant = %s WHERE id = %s",
+        (nouvel_identifiant, utilisateur_id),
+    )
+
+
+def marquer_mot_de_passe_traite(utilisateur_id: int):
+    """Arrête l'invite de première connexion, qu'elle ait été acceptée ou non."""
+    Database.execute(
+        "UPDATE utilisateurs SET doit_changer_mot_de_passe = FALSE WHERE id = %s",
+        (utilisateur_id,),
     )

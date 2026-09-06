@@ -5,7 +5,10 @@ adapté au rôle de la personne connectée.
 """
 
 import sys
-from PyQt6.QtWidgets import QApplication, QMainWindow, QTabWidget, QWidget, QVBoxLayout, QHBoxLayout, QPushButton
+from PyQt6.QtWidgets import (
+    QApplication, QMainWindow, QTabWidget, QWidget, QVBoxLayout, QHBoxLayout,
+    QPushButton, QMessageBox,
+)
 
 import os
 
@@ -19,8 +22,9 @@ from ui.comptabilite import Comptabilite
 from ui.rapports import Rapports
 from ui.gestion_fournisseurs import GestionFournisseurs
 from ui.gestion_utilisateurs import GestionUtilisateurs
-from ui.dialogue_mot_de_passe import DialogueMotDePasse
+from ui.dialogue_parametres import DialogueParametres
 from ui.gestion_rh import GestionRH
+from modules.auth import marquer_mot_de_passe_traite
 
 
 class FenetrePrincipale(QMainWindow):
@@ -55,10 +59,10 @@ class FenetrePrincipale(QMainWindow):
         barre_haut = QHBoxLayout()
         barre_haut.setContentsMargins(12, 8, 12, 0)
         barre_haut.addStretch()
-        bouton_mot_de_passe = QPushButton("Modifier mon mot de passe")
-        bouton_mot_de_passe.setProperty("secondaire", True)
-        bouton_mot_de_passe.clicked.connect(self._modifier_mot_de_passe)
-        barre_haut.addWidget(bouton_mot_de_passe)
+        bouton_parametres = QPushButton("⚙ Paramètres")
+        bouton_parametres.setProperty("secondaire", True)
+        bouton_parametres.clicked.connect(self._ouvrir_parametres)
+        barre_haut.addWidget(bouton_parametres)
         bouton_deconnexion = QPushButton("Se déconnecter")
         bouton_deconnexion.setProperty("secondaire", True)
         bouton_deconnexion.clicked.connect(self._se_deconnecter)
@@ -92,8 +96,8 @@ class FenetrePrincipale(QMainWindow):
 
         self.setCentralWidget(conteneur)
 
-    def _modifier_mot_de_passe(self):
-        DialogueMotDePasse(self.utilisateur, parent=self).exec()
+    def _ouvrir_parametres(self):
+        DialogueParametres(self.utilisateur, parent=self).exec()
 
     def _se_deconnecter(self):
         if self.on_deconnexion:
@@ -106,6 +110,16 @@ def demarrer_application_principale(utilisateur):
     fenetre_principale = FenetrePrincipale(utilisateur, on_deconnexion=revenir_a_connexion)
     fenetre_principale.show()
     fenetre_connexion.close()
+
+    if utilisateur.get("doit_changer_mot_de_passe"):
+        reponse = QMessageBox.question(
+            fenetre_principale,
+            "Première connexion",
+            "Souhaitez-vous changer votre mot de passe maintenant ?",
+        )
+        marquer_mot_de_passe_traite(utilisateur["id"])
+        if reponse == QMessageBox.StandardButton.Yes:
+            fenetre_principale._ouvrir_parametres()
 
 
 def revenir_a_connexion():
