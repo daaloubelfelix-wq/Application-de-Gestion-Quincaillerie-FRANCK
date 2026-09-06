@@ -1,16 +1,13 @@
 """
-Écran d'enregistrement des commandes clients (tenu par la comptabilité).
-Recherche d'articles (limitée au catalogue du site de l'utilisateur),
-panier, calcul automatique de la TVA, et choix entre ticket rapide
-ou facture détaillée pour le document FINAL — celui-ci n'est généré
-qu'à l'encaissement (voir ui/caisse.py).
+Écran d'enregistrement d'une vente (tenu par la comptabilité).
 
-Cet écran ne prend PAS le paiement : il enregistre la commande (le stock
-est retiré immédiatement) et imprime un bon de commande non fiscal avec
-le montant à payer. Le client va ensuite payer à la caisse (voir
-ui/caisse.py, tenu par le responsable), où le document final (facture
-numérotée ou ticket) est généré — inspiré du fonctionnement d'une
-pharmacie : jamais de document numéroté avant paiement.
+Circuit réel de la boutique : le client a déjà payé directement à la
+caisse (le responsable note à la main sur le facturier papier) ; la
+comptabilité saisit ensuite tout ici, en une seule fois, à partir de
+cette note. C'est cette saisie qui retire le stock, crée la recette,
+attribue le numéro de facture si nécessaire, ET imprime directement le
+reçu final (format imprimante ticket, deux copies) — voir
+modules/ventes.py::enregistrer_vente.
 """
 
 import os
@@ -18,12 +15,13 @@ from datetime import datetime
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton, QLabel,
-    QListWidget, QListWidgetItem, QMessageBox, QFileDialog, QFrame
+    QListWidget, QListWidgetItem, QMessageBox, QComboBox, QFrame
 )
 from PyQt6.QtCore import Qt
 
-from modules.ventes import enregistrer_commande, rechercher_articles
-from modules.facturation import calculer_totaux, generer_bon_commande_pdf
+from modules.ventes import enregistrer_vente, rechercher_articles
+from modules.facturation import calculer_totaux, generer_recu_thermique_pdf
+from modules.paiement import MODES_PAIEMENT
 from ui.dialogue_document import DialogueDocumentGenere
 
 
@@ -42,12 +40,16 @@ class PointDeVente(QWidget):
         layout.setContentsMargins(24, 24, 24, 24)
         layout.setSpacing(12)
 
-        titre = QLabel(f"Nouvelle commande · {self.utilisateur['site_nom']}")
+        titre = QLabel(f"Enregistrer une vente · {self.utilisateur['site_nom']}")
         titre.setObjectName("titreEcran")
         layout.addWidget(titre)
 
-        sous_titre = QLabel("Le client paiera à la caisse une fois la commande enregistrée.")
+        sous_titre = QLabel(
+            "Le client a déjà payé à la caisse. Saisissez ici ce qui est indiqué "
+            "sur le facturier papier, puis enregistrez."
+        )
         sous_titre.setObjectName("texteAttenue")
+        sous_titre.setWordWrap(True)
         layout.addWidget(sous_titre)
 
         # Barre de recherche
@@ -75,18 +77,18 @@ class PointDeVente(QWidget):
         bouton_retirer.clicked.connect(self._retirer_du_panier)
         layout.addWidget(bouton_retirer)
 
-        # Récapitulatif des totaux
+        # Récapitulatif des totaux + mode de paiement
         self.cadre_totaux = QFrame()
         self.cadre_totaux.setObjectName("carteTotaux")
         self._construire_zone_totaux()
         layout.addWidget(self.cadre_totaux)
 
-        # Boutons d'enregistrement de la commande
+        # Boutons d'enregistrement de la vente
         actions = QHBoxLayout()
-        bouton_ticket = QPushButton("Enregistrer — Ticket rapide")
-        bouton_ticket.clicked.connect(lambda: self._enregistrer_commande("ticket"))
+        bouton_ticket = QPushButton("Enregistrer — Ticket")
+        bouton_ticket.clicked.connect(lambda: self._enregistrer_vente("ticket"))
         bouton_facture = QPushButton("Enregistrer — Facture détaillée")
-        bouton_facture.clicked.connect(lambda: self._enregistrer_commande("facture"))
+        bouton_facture.clicked.connect(lambda: self._enregistrer_vente("facture"))
         actions.addWidget(bouton_ticket)
         actions.addWidget(bouton_facture)
         layout.addLayout(actions)
@@ -97,11 +99,21 @@ class PointDeVente(QWidget):
         vlayout = QVBoxLayout()
         self.label_sous_total = QLabel("Sous-total HT : 0 FCFA")
         self.label_tva = QLabel("TVA (19,25%) : 0 FCFA")
-        self.label_total = QLabel("Total à payer à la caisse : 0 FCFA")
+        self.label_total = QLabel("Total payé par le client : 0 FCFA")
         self.label_total.setObjectName("totalMisEnValeur")
+
+        ligne_mode_paiement = QHBoxLayout()
+        libelle_mode = QLabel("Mode de paiement (indiqué sur le facturier) :")
+        self.selecteur_mode_paiement = QComboBox()
+        for code, libelle in MODES_PAIEMENT:
+            self.selecteur_mode_paiement.addItem(libelle, code)
+        ligne_mode_paiement.addWidget(libelle_mode)
+        ligne_mode_paiement.addWidget(self.selecteur_mode_paiement)
+
         vlayout.addWidget(self.label_sous_total)
         vlayout.addWidget(self.label_tva)
         vlayout.addWidget(self.label_total)
+        vlayout.addLayout(ligne_mode_paiement)
         self.cadre_totaux.setLayout(vlayout)
 
     # ------------------------------------------------------------
@@ -163,50 +175,51 @@ class PointDeVente(QWidget):
 
         self.label_sous_total.setText(f"Sous-total HT : {sous_total:,.0f} FCFA".replace(",", " "))
         self.label_tva.setText(f"TVA (19,25%) : {tva:,.0f} FCFA".replace(",", " "))
-        self.label_total.setText(f"Total à payer à la caisse : {total:,.0f} FCFA".replace(",", " "))
+        self.label_total.setText(f"Total payé par le client : {total:,.0f} FCFA".replace(",", " "))
 
     # ------------------------------------------------------------
-    # Enregistrement de la commande (pas de paiement à cette étape)
+    # Enregistrement de la vente (déjà payée à la caisse)
     # ------------------------------------------------------------
-    def _enregistrer_commande(self, type_document):
+    def _enregistrer_vente(self, type_document):
         if not self.panier:
             QMessageBox.warning(self, "Panier vide", "Ajoutez au moins un article avant d'enregistrer.")
             return
 
+        mode_paiement = self.selecteur_mode_paiement.currentData()
+
         try:
-            resultat = enregistrer_commande(self.utilisateur, self.panier, type_document)
+            resultat = enregistrer_vente(self.utilisateur, self.panier, type_document, mode_paiement)
         except ValueError as erreur:
-            QMessageBox.critical(self, "Impossible d'enregistrer la commande", str(erreur))
+            QMessageBox.critical(self, "Impossible d'enregistrer la vente", str(erreur))
             return
 
-        chemin_pdf = self._generer_bon_commande()
+        chemin_pdf = self._generer_recu(resultat)
 
-        message = (
-            "Commande enregistrée.\n"
-            "Ceci n'est pas une facture : le client doit se présenter à la "
-            "caisse avec le bon de commande pour payer et recevoir le "
-            f"document final.\nMontant à régler à la caisse : "
-            f"{resultat['total_ttc']:,.0f} FCFA".replace(",", " ")
-        )
+        message = f"Vente enregistrée : {resultat['total_ttc']:,.0f} FCFA".replace(",", " ")
+        if resultat.get("numero_facture"):
+            message += f"\nFacture n° {resultat['numero_facture']}"
 
-        DialogueDocumentGenere("Commande enregistrée", message, chemin_pdf, parent=self).exec()
+        DialogueDocumentGenere("Vente enregistrée", message, chemin_pdf, parent=self).exec()
 
         self.panier = []
         self._rafraichir_panier()
         self.champ_recherche.clear()
         self.liste_resultats.clear()
 
-    def _generer_bon_commande(self):
+    def _generer_recu(self, resultat):
         dossier_documents = os.path.join(os.path.expanduser("~"), "Documents", "Ventes_Quincaillerie")
         os.makedirs(dossier_documents, exist_ok=True)
 
-        horodatage = datetime.now().strftime("%Y-%m-%d %Hh%M")
-        nom_fichier = f"Bon de commande {horodatage}.pdf"
+        if resultat["type_document"] == "facture":
+            date_du_jour = datetime.now().strftime("%Y-%m-%d")
+            nom_fichier = f"Facture n° {resultat['numero_facture']} - {date_du_jour}.pdf"
+        else:
+            horodatage = datetime.now().strftime("%Y-%m-%d %Hh%M")
+            nom_fichier = f"Ticket {horodatage}.pdf"
         chemin = os.path.join(dossier_documents, nom_fichier)
-        generer_bon_commande_pdf(
-            chemin,
-            self.panier,
-            self.utilisateur["nom_complet"],
-            self.utilisateur["site_nom"],
+
+        generer_recu_thermique_pdf(
+            chemin, resultat["type_document"], resultat["numero_facture"], resultat["lignes"],
+            resultat["vendeur_nom"], resultat["mode_paiement"], resultat["site_nom"],
         )
         return chemin

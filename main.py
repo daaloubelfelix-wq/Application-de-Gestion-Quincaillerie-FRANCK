@@ -25,13 +25,16 @@ class FenetrePrincipale(QMainWindow):
     """Fenêtre principale affichée après connexion réussie.
     Le contenu des onglets s'adapte précisément au rôle de la personne connectée,
     et au circuit réel de la boutique : le magasin de stock gère les articles
-    (il ne vend pas directement), la comptabilité enregistre les commandes des
-    clients, et le responsable tient la caisse qui encaisse le paiement.
+    (il ne vend pas directement) ; le client paie d'abord directement au
+    responsable à la caisse (note manuscrite sur le facturier papier) ; la
+    comptabilité saisit ensuite tout dans l'ordinateur en une seule fois, ce
+    qui imprime directement le reçu final (voir ui/point_de_vente.py).
     - agent_stock : Tableau de bord, Articles, Fournisseurs
-    - agent_comptabilite : Tableau de bord, Comptabilité, Nouvelle commande
-    - responsable : Tableau de bord consolidé, Articles (tous sites), Caisse,
-      Rapports, Fournisseurs, Utilisateurs — seul le responsable peut changer
-      le prix d'un article existant (voir ui/formulaire_article.py)
+    - agent_comptabilite : Tableau de bord, Comptabilité, Enregistrer une vente
+    - responsable : Tableau de bord consolidé, Articles (tous sites), Historique
+      des ventes (vérification/annulation), Rapports, Fournisseurs, Utilisateurs
+      — seul le responsable peut changer le prix d'un article existant (voir
+      ui/formulaire_article.py) ou annuler une vente déjà payée
     """
 
     def __init__(self, utilisateur):
@@ -48,7 +51,7 @@ class FenetrePrincipale(QMainWindow):
         if utilisateur["role"] == "responsable":
             onglets.addTab(TableauBordResponsable(utilisateur), "Tableau de bord")
             onglets.addTab(GestionArticles(utilisateur), "Articles")
-            onglets.addTab(Caisse(utilisateur), "Caisse")
+            onglets.addTab(Caisse(utilisateur), "Historique des ventes")
             onglets.addTab(Rapports(utilisateur), "Rapports")
             onglets.addTab(GestionFournisseurs(utilisateur), "Fournisseurs")
             onglets.addTab(GestionUtilisateurs(utilisateur), "Utilisateurs")
@@ -59,7 +62,7 @@ class FenetrePrincipale(QMainWindow):
         elif utilisateur["role"] == "agent_comptabilite":
             onglets.addTab(TableauBordAgent(utilisateur), "Tableau de bord")
             onglets.addTab(Comptabilite(utilisateur), "Comptabilité")
-            onglets.addTab(PointDeVente(utilisateur), "Nouvelle commande")
+            onglets.addTab(PointDeVente(utilisateur), "Enregistrer une vente")
 
         self.setCentralWidget(onglets)
 

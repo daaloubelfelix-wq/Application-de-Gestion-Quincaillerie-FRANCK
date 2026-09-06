@@ -1,26 +1,41 @@
 """
-Génération des documents de vente en PDF.
+Génération du reçu de vente en PDF, au format d'une imprimante ticket de
+caisse (thermique, rouleau) — pas une imprimante de bureau A4/A5.
 
-Circuit inspiré de la pharmacie : on ne remet jamais un document numéroté
-avant que l'argent soit reçu. Trois documents possibles :
-- bon de commande : remis par la comptabilité à l'enregistrement de la
-  commande, AVANT paiement — non numéroté, explicitement marqué comme
-  n'étant pas une facture (voir generer_bon_commande_pdf)
-- ticket : remis à la caisse, APRÈS paiement — pas de numérotation
-- facture : remise à la caisse, APRÈS paiement — numéro de facture
-  séquentiel, attribué uniquement à l'encaissement (voir
-  modules/ventes.py, encaisser_commande)
+Circuit réel de la boutique (voir README, section « Circuit d'une
+vente ») : le client paie d'abord directement à la caisse (le responsable
+note à la main sur le facturier papier) ; la comptabilité saisit ensuite
+la vente dans l'ordinateur EN UNE SEULE FOIS, puisque l'argent est déjà
+reçu — c'est cette saisie qui génère et imprime directement le reçu
+final (voir modules/ventes.py, enregistrer_vente). Il n'y a donc plus de
+document intermédiaire avant paiement.
+
+Le reçu imprime deux exemplaires à la suite sur le même rouleau (COPIE
+CLIENT puis COPIE MAGASIN), comme un carnet à souche à papier carbone —
+une seule impression suffit.
+
+Largeur réglée pour une imprimante 80mm (la plus courante) ; si
+l'imprimante réelle fait 58mm, changer LARGEUR_TICKET_MM ci-dessous.
 """
 
-from reportlab.lib.pagesizes import A5
 from reportlab.lib.units import mm
 from reportlab.pdfgen import canvas
+from reportlab.pdfbase.pdfmetrics import stringWidth
 from datetime import datetime
 
 NOM_ETABLISSEMENT = "Ets Quincaillerie Franck"
 ADRESSE_ETABLISSEMENT = "Batouri, Région de l'Est, Cameroun"
 TELEPHONES_ETABLISSEMENT = "699 861217 / 654 226348"
 TAUX_TVA = 19.25  # en pourcentage
+
+LARGEUR_TICKET_MM = 80
+LARGEUR_TICKET = LARGEUR_TICKET_MM * mm
+MARGE_TICKET = 3 * mm
+LARGEUR_UTILE = LARGEUR_TICKET - 2 * MARGE_TICKET
+
+_POLICE_NORMALE = "Helvetica"
+_POLICE_GRASSE = "Helvetica-Bold"
+_POLICE_OBLIQUE = "Helvetica-Oblique"
 
 
 def calculer_totaux(lignes_panier):
@@ -38,189 +53,153 @@ def _formater_montant(valeur):
     return f"{valeur:,.0f} FCFA".replace(",", " ")
 
 
-def generer_bon_commande_pdf(chemin_fichier, lignes_panier, nom_vendeur, site_nom):
-    """
-    Bon de commande remis au client par la comptabilité, AVANT paiement.
-    Ce n'est volontairement PAS une facture ni un ticket : pas de
-    numérotation, mention explicite que ce n'est pas un document fiscal.
-    Le client le présente à la caisse pour payer et recevoir le document
-    final (voir modules/ventes.py, encaisser_commande).
-    """
-    sous_total_ht, montant_tva, total_ttc = calculer_totaux(lignes_panier)
+def _decouper_texte(texte, police, taille, largeur_max):
+    """Découpe texte en lignes qui tiennent dans largeur_max (rouleau très étroit)."""
+    mots = texte.split()
+    lignes = []
+    ligne_actuelle = ""
+    for mot in mots:
+        essai = f"{ligne_actuelle} {mot}".strip()
+        if stringWidth(essai, police, taille) <= largeur_max or not ligne_actuelle:
+            ligne_actuelle = essai
+        else:
+            lignes.append(ligne_actuelle)
+            ligne_actuelle = mot
+    if ligne_actuelle:
+        lignes.append(ligne_actuelle)
+    return lignes
 
-    c = canvas.Canvas(chemin_fichier, pagesize=A5)
-    largeur, hauteur = A5
-    marge = 15 * mm
-    y = hauteur - marge
 
-    c.setFont("Helvetica-Bold", 12)
-    c.drawCentredString(largeur / 2, y, NOM_ETABLISSEMENT)
-    y -= 6 * mm
-    c.setFont("Helvetica", 8)
-    c.drawCentredString(largeur / 2, y, f"{site_nom} · {ADRESSE_ETABLISSEMENT}")
-    y -= 9 * mm
-
-    c.setFont("Helvetica-Bold", 11)
-    c.drawCentredString(largeur / 2, y, "BON DE COMMANDE")
-    y -= 5 * mm
-    c.setFont("Helvetica-Oblique", 7)
-    c.drawCentredString(largeur / 2, y, "Ce document n'est pas une facture — à présenter à la caisse pour paiement")
-    y -= 8 * mm
-
-    c.setFont("Helvetica", 8)
-    c.drawString(marge, y, f"{datetime.now().strftime('%d/%m/%Y %H:%M')} · Enregistré par {nom_vendeur}")
-    y -= 8 * mm
-    c.line(marge, y, largeur - marge, y)
-    y -= 6 * mm
-
-    c.setFont("Helvetica", 9)
+def _lignes_articles_decoupees(lignes_panier):
+    """Pour chaque article, la ou les lignes de nom (si trop long) + la ligne de détail."""
+    resultat = []
     for ligne in lignes_panier:
-        c.drawString(marge, y, ligne["nom"])
-        y -= 5 * mm
+        lignes_nom = _decouper_texte(ligne["nom"], _POLICE_NORMALE, 9, LARGEUR_UTILE)
         detail = f"{ligne['quantite']} x {_formater_montant(ligne['prix_unitaire'])}"
         total_ligne = _formater_montant(ligne["quantite"] * ligne["prix_unitaire"])
-        c.setFont("Helvetica", 8)
-        c.drawString(marge, y, detail)
-        c.drawRightString(largeur - marge, y, total_ligne)
-        c.setFont("Helvetica", 9)
+        resultat.append((lignes_nom, detail, total_ligne))
+    return resultat
+
+
+def _hauteur_une_copie(lignes_articles_decoupees):
+    """Hauteur en points nécessaire pour dessiner UNE copie du reçu."""
+    hauteur = 0
+    hauteur += 17.5 * mm          # nom + adresse + téléphone
+    hauteur += 4 * (5 * mm)       # titre document, date/heure, vendeur, mode de paiement
+    hauteur += 5 * mm             # ligne + espace avant articles
+    for lignes_nom, _, _ in lignes_articles_decoupees:
+        hauteur += len(lignes_nom) * 4.2 * mm
+        hauteur += 7 * mm         # ligne de détail (qté x pu = total)
+    hauteur += 5 * mm             # ligne + espace avant totaux
+    hauteur += 5 * mm + 5.5 * mm + 8 * mm  # sous-total, tva, total
+    hauteur += 6 * mm + 4 * mm    # remerciement + étiquette "COPIE ..."
+    return hauteur
+
+
+def _dessiner_une_copie(c, y_haut, etiquette_copie, type_document, numero_facture,
+                         lignes_articles_decoupees, sous_total_ht, montant_tva, total_ttc,
+                         nom_vendeur, mode_paiement_libelle, site_nom):
+    """Dessine une copie complète du reçu, en partant de y_haut vers le bas.
+    Retourne le y en bas de cette copie."""
+    centre = LARGEUR_TICKET / 2
+    y = y_haut
+
+    c.setFont(_POLICE_GRASSE, 10)
+    c.drawCentredString(centre, y, NOM_ETABLISSEMENT)
+    y -= 5 * mm
+    c.setFont(_POLICE_NORMALE, 7)
+    c.drawCentredString(centre, y, f"{site_nom} · {ADRESSE_ETABLISSEMENT}")
+    y -= 4.5 * mm
+    c.drawCentredString(centre, y, f"Tél : {TELEPHONES_ETABLISSEMENT}")
+    y -= 8 * mm
+
+    c.setFont(_POLICE_GRASSE, 9)
+    titre_document = f"FACTURE N° {numero_facture}" if type_document == "facture" else "TICKET DE CAISSE"
+    c.drawCentredString(centre, y, titre_document)
+    y -= 5 * mm
+    c.setFont(_POLICE_NORMALE, 7)
+    c.drawCentredString(centre, y, datetime.now().strftime("%d/%m/%Y %H:%M"))
+    y -= 5 * mm
+    c.drawCentredString(centre, y, f"Vendu par {nom_vendeur}")
+    y -= 5 * mm
+    c.drawCentredString(centre, y, f"Paiement : {mode_paiement_libelle}")
+    y -= 6 * mm
+
+    c.line(MARGE_TICKET, y, LARGEUR_TICKET - MARGE_TICKET, y)
+    y -= 5 * mm
+
+    for lignes_nom, detail, total_ligne in lignes_articles_decoupees:
+        c.setFont(_POLICE_NORMALE, 9)
+        for ligne_nom in lignes_nom:
+            c.drawString(MARGE_TICKET, y, ligne_nom)
+            y -= 4.2 * mm
+        c.setFont(_POLICE_NORMALE, 8)
+        c.drawString(MARGE_TICKET, y, detail)
+        c.drawRightString(LARGEUR_TICKET - MARGE_TICKET, y, total_ligne)
         y -= 7 * mm
 
-    c.line(marge, y, largeur - marge, y)
-    y -= 8 * mm
-
-    c.setFont("Helvetica-Bold", 13)
-    c.drawString(marge, y, "À régler à la caisse")
-    c.drawRightString(largeur - marge, y, _formater_montant(total_ttc))
-    y -= 12 * mm
-
-    c.setFont("Helvetica-Oblique", 8)
-    c.drawCentredString(largeur / 2, y, "Merci de présenter ce bon à la caisse pour le paiement")
-
-    c.save()
-    return sous_total_ht, montant_tva, total_ttc
-
-
-def generer_ticket_pdf(chemin_fichier, lignes_panier, nom_caissier, site_nom):
-    """Génère un ticket de caisse compact, sans numérotation."""
-    sous_total_ht, montant_tva, total_ttc = calculer_totaux(lignes_panier)
-
-    c = canvas.Canvas(chemin_fichier, pagesize=A5)
-    largeur, hauteur = A5
-    marge = 15 * mm
-    y = hauteur - marge
-
-    c.setFont("Helvetica-Bold", 12)
-    c.drawCentredString(largeur / 2, y, NOM_ETABLISSEMENT)
-    y -= 6 * mm
-    c.setFont("Helvetica", 8)
-    c.drawCentredString(largeur / 2, y, f"{site_nom} · {ADRESSE_ETABLISSEMENT}")
-    y -= 10 * mm
-
-    c.setFont("Helvetica", 8)
-    c.drawString(marge, y, f"{datetime.now().strftime('%d/%m/%Y %H:%M')} · Caisse {nom_caissier}")
-    y -= 8 * mm
-    c.line(marge, y, largeur - marge, y)
-    y -= 6 * mm
-
-    c.setFont("Helvetica", 9)
-    for ligne in lignes_panier:
-        c.drawString(marge, y, ligne["nom"])
-        y -= 5 * mm
-        detail = f"{ligne['quantite']} x {_formater_montant(ligne['prix_unitaire'])}"
-        total_ligne = _formater_montant(ligne["quantite"] * ligne["prix_unitaire"])
-        c.setFont("Helvetica", 8)
-        c.drawString(marge, y, detail)
-        c.drawRightString(largeur - marge, y, total_ligne)
-        c.setFont("Helvetica", 9)
-        y -= 7 * mm
-
-    c.line(marge, y, largeur - marge, y)
-    y -= 6 * mm
-
-    c.setFont("Helvetica", 9)
-    c.drawString(marge, y, "Sous-total HT")
-    c.drawRightString(largeur - marge, y, _formater_montant(sous_total_ht))
-    y -= 6 * mm
-    c.drawString(marge, y, f"TVA {TAUX_TVA}%")
-    c.drawRightString(largeur - marge, y, _formater_montant(montant_tva))
-    y -= 6 * mm
-    c.line(marge, y, largeur - marge, y)
-    y -= 8 * mm
-
-    c.setFont("Helvetica-Bold", 12)
-    c.drawString(marge, y, "TOTAL TTC")
-    c.drawRightString(largeur - marge, y, _formater_montant(total_ttc))
-    y -= 12 * mm
-
-    c.setFont("Helvetica-Oblique", 8)
-    c.drawCentredString(largeur / 2, y, "Merci de votre achat")
-
-    c.save()
-    return sous_total_ht, montant_tva, total_ttc
-
-
-def generer_facture_pdf(chemin_fichier, numero_facture, lignes_panier, nom_vendeur, site_nom):
-    """Génère une facture détaillée avec en-tête, tableau et numérotation."""
-    sous_total_ht, montant_tva, total_ttc = calculer_totaux(lignes_panier)
-
-    c = canvas.Canvas(chemin_fichier, pagesize=A5)
-    largeur, hauteur = A5
-    marge = 15 * mm
-    y = hauteur - marge
-
-    # En-tête
-    c.setFont("Helvetica-Bold", 13)
-    c.drawString(marge, y, NOM_ETABLISSEMENT)
-    c.setFont("Helvetica", 8)
-    c.drawRightString(largeur - marge, y, f"Facture n° {numero_facture}")
+    c.line(MARGE_TICKET, y, LARGEUR_TICKET - MARGE_TICKET, y)
     y -= 5 * mm
-    c.drawString(marge, y, f"{site_nom} · {ADRESSE_ETABLISSEMENT}")
-    c.drawRightString(largeur - marge, y, datetime.now().strftime("%d/%m/%Y"))
+
+    c.setFont(_POLICE_NORMALE, 8)
+    c.drawString(MARGE_TICKET, y, "Sous-total HT")
+    c.drawRightString(LARGEUR_TICKET - MARGE_TICKET, y, _formater_montant(sous_total_ht))
     y -= 5 * mm
-    c.drawString(marge, y, f"Tél : {TELEPHONES_ETABLISSEMENT}")
-    y -= 8 * mm
-    c.line(marge, y, largeur - marge, y)
+    c.drawString(MARGE_TICKET, y, f"TVA ({TAUX_TVA}%)")
+    c.drawRightString(LARGEUR_TICKET - MARGE_TICKET, y, _formater_montant(montant_tva))
+    y -= 5.5 * mm
+
+    c.setFont(_POLICE_GRASSE, 10)
+    c.drawString(MARGE_TICKET, y, "TOTAL TTC")
+    c.drawRightString(LARGEUR_TICKET - MARGE_TICKET, y, _formater_montant(total_ttc))
     y -= 8 * mm
 
-    # En-tête du tableau
-    c.setFont("Helvetica-Bold", 9)
-    c.drawString(marge, y, "Article")
-    c.drawString(marge + 70 * mm, y, "Qté")
-    c.drawRightString(largeur - marge - 25 * mm, y, "P.U.")
-    c.drawRightString(largeur - marge, y, "Total")
-    y -= 3 * mm
-    c.line(marge, y, largeur - marge, y)
+    c.setFont(_POLICE_OBLIQUE, 7)
+    c.drawCentredString(centre, y, "Merci de votre achat")
     y -= 6 * mm
 
-    c.setFont("Helvetica", 9)
-    for ligne in lignes_panier:
-        total_ligne = ligne["quantite"] * ligne["prix_unitaire"]
-        c.drawString(marge, y, ligne["nom"])
-        c.drawString(marge + 70 * mm, y, str(ligne["quantite"]))
-        c.drawRightString(largeur - marge - 25 * mm, y, _formater_montant(ligne["prix_unitaire"]))
-        c.drawRightString(largeur - marge, y, _formater_montant(total_ligne))
-        y -= 6 * mm
-
+    c.setFont(_POLICE_GRASSE, 8)
+    c.drawCentredString(centre, y, f"— {etiquette_copie} —")
     y -= 4 * mm
-    c.line(marge, y, largeur - marge, y)
-    y -= 8 * mm
 
-    c.setFont("Helvetica", 9)
-    c.drawString(largeur - marge - 60 * mm, y, "Sous-total HT")
-    c.drawRightString(largeur - marge, y, _formater_montant(sous_total_ht))
-    y -= 6 * mm
-    c.drawString(largeur - marge - 60 * mm, y, f"TVA ({TAUX_TVA}%)")
-    c.drawRightString(largeur - marge, y, _formater_montant(montant_tva))
-    y -= 3 * mm
-    c.line(largeur - marge - 60 * mm, y, largeur - marge, y)
-    y -= 8 * mm
-    c.setFont("Helvetica-Bold", 12)
-    c.drawString(largeur - marge - 60 * mm, y, "Total TTC")
-    c.drawRightString(largeur - marge, y, _formater_montant(total_ttc))
-    y -= 14 * mm
+    return y
 
-    c.setFont("Helvetica", 8)
-    c.drawString(marge, y, f"Vendeur : {nom_vendeur} · Merci de votre confiance")
+
+def generer_recu_thermique_pdf(chemin_fichier, type_document, numero_facture, lignes_panier,
+                                nom_vendeur, mode_paiement, site_nom):
+    """
+    Génère le reçu final (facture numérotée ou ticket) au format imprimante
+    ticket, avec deux copies à la suite sur le même rouleau (COPIE CLIENT
+    puis COPIE MAGASIN). Appelé uniquement quand l'argent a déjà été reçu
+    (voir modules/ventes.py, enregistrer_vente).
+    """
+    from modules.paiement import libelle_mode_paiement
+
+    sous_total_ht, montant_tva, total_ttc = calculer_totaux(lignes_panier)
+    lignes_decoupees = _lignes_articles_decoupees(lignes_panier)
+    mode_paiement_libelle = libelle_mode_paiement(mode_paiement)
+
+    hauteur_copie = _hauteur_une_copie(lignes_decoupees)
+    marge_haute_basse = 6 * mm
+    hauteur_separateur = 10 * mm
+    hauteur_page = marge_haute_basse * 2 + hauteur_copie * 2 + hauteur_separateur
+
+    c = canvas.Canvas(chemin_fichier, pagesize=(LARGEUR_TICKET, hauteur_page))
+
+    y = hauteur_page - marge_haute_basse
+    for etiquette in ("COPIE CLIENT", "COPIE MAGASIN"):
+        y = _dessiner_une_copie(
+            c, y, etiquette, type_document, numero_facture, lignes_decoupees,
+            sous_total_ht, montant_tva, total_ttc, nom_vendeur, mode_paiement_libelle, site_nom,
+        )
+        if etiquette == "COPIE CLIENT":
+            y -= 4 * mm
+            c.setDash(2, 2)
+            c.line(MARGE_TICKET, y, LARGEUR_TICKET - MARGE_TICKET, y)
+            c.setDash()
+            c.setFont(_POLICE_NORMALE, 6)
+            c.drawCentredString(LARGEUR_TICKET / 2, y - 3 * mm, "✂ - - - - - - - - - - - - - - - - -")
+            y -= hauteur_separateur
 
     c.save()
     return sous_total_ht, montant_tva, total_ttc

@@ -2,12 +2,14 @@
 
 Ce guide vous fait rejouer une vraie journée de vente, avec des articles
 concrets, pour vérifier que chaque poste se comporte normalement — y
-compris les dernières nouveautés (verrouillage des prix, aperçu avant
-impression, export Excel). Comptez environ 30 minutes.
+compris les dernières nouveautés : circuit paiement-à-la-caisse-d'abord
+(le client paie Franck directement, la comptabilité saisit ensuite tout
+d'un coup), reçu au format imprimante ticket en deux copies, verrouillage
+des prix, export Excel. Comptez environ 30 minutes.
 
 Suivez les étapes **dans l'ordre** : chaque étape dépend souvent de la
-précédente (ex : on ne peut pas encaisser une commande qui n'a pas encore
-été enregistrée).
+précédente (ex : on ne peut pas saisir dans l'historique une vente qui
+n'a pas encore été enregistrée).
 
 ## Avant de commencer
 
@@ -92,62 +94,59 @@ par site) : chaque compte ne voit et ne gère déjà que son propre site.*
 
 ---
 
-## Étape 3 — Poste Comptoir (Chantal), vente au comptant
+## Étape 3 — Poste Comptoir (Chantal), saisie d'une vente déjà payée
+
+Rappel du circuit réel : le client a **déjà payé** directement à Franck, à
+la caisse, qui a noté la vente à la main sur le facturier papier. Chantal
+saisit maintenant cette note dans l'ordinateur — en une seule fois,
+puisque l'argent est déjà reçu.
 
 1. Connectez-vous avec `c.comptoir`.
-2. Onglet **Nouvelle commande** :
+2. Onglet **Enregistrer une vente** :
    - Recherchez et ajoutez `Marteau` (quantité 1) et `Peinture blanche
      1L` (quantité 2) au panier.
    - Vérifiez que le total TTC affiché semble cohérent (TVA 19,25%
      incluse).
-   - Cliquez **Enregistrer — Facture détaillée** (pas « Ticket rapide »,
-     pour tester la numérotation).
+   - Choisissez le mode de paiement `Espèces` (ce qui est indiqué sur le
+     facturier).
+   - Cliquez **Enregistrer — Facture détaillée** (pas « Ticket », pour
+     tester la numérotation).
 3. Une fenêtre doit s'ouvrir avec un seul bouton **Aperçu et
    impression** :
    - ✅ **À vérifier** : cliquez dessus — le PDF doit s'ouvrir dans
      votre lecteur habituel (Edge/Adobe), **pas** partir directement à
-     l'imprimante. C'est le nouveau comportement demandé.
-   - ✅ **À vérifier** : le document s'appelle « BON DE COMMANDE » et
-     précise « Ce document n'est pas une facture ». C'est normal et
-     volontaire — comme à la pharmacie, on ne remet un document numéroté
-     qu'une fois payé. La vraie facture sera générée à la caisse, à
-     l'étape 4.
+     l'imprimante.
+   - ✅ **À vérifier** : le document s'appelle « FACTURE N° 2026-0001 »
+     (numéro déjà attribué, puisque l'argent est déjà reçu), au format
+     **étroit façon imprimante ticket** (pas une page A4/A5), et contient
+     le même contenu **deux fois à la suite** (« — COPIE CLIENT — » puis
+     « — COPIE MAGASIN — », séparées par une ligne de coupe).
    - ✅ **À vérifier** : dans l'explorateur de fichiers
      (`Documents\Ventes_Quincaillerie`), le fichier doit s'appeler
-     `Bon de commande AAAA-MM-JJ 14h32.pdf`.
-4. Enregistrez une deuxième commande, cette fois **Ticket rapide**, avec
-   juste `Marteau` (quantité 1). Même chose : un bon de commande, pas
-   encore de ticket.
+     `Facture n° 2026-0001 - AAAA-MM-JJ.pdf`.
+4. Enregistrez une deuxième vente, cette fois **Ticket**, avec juste
+   `Marteau` (quantité 1) et mode de paiement `Orange Money`.
+   - ✅ **À vérifier** : le fichier s'appelle `Ticket AAAA-MM-JJ
+     14h32.pdf`, le document dit « TICKET DE CAISSE » (pas de numéro —
+     les tickets n'en ont jamais).
 5. Déconnectez-vous.
 
 ---
 
-## Étape 4 — Retour Responsable (Franck), caisse et rapports
+## Étape 4 — Retour Responsable (Franck), historique et rapports
 
 1. Reconnectez-vous avec votre compte responsable.
-2. Onglet **Caisse** :
-   - ✅ **À vérifier** : les deux commandes de Chantal apparaissent
-     (« Enregistrée par Chantal Mbarga »), la colonne Document affiche
-     juste « Facture » / « Ticket », sans numéro — normal, il n'est
-     attribué qu'à l'encaissement.
-   - Cliquez **Encaisser** sur la facture → mode de paiement
-     **Espèces** → confirmez.
-   - ✅ **À vérifier** : une fenêtre « Aperçu et impression » s'ouvre —
-     c'est maintenant la **vraie facture numérotée** (`Facture n°
-     2026-0001` par exemple) qui est générée. Ouvrez-la : elle doit
-     contenir Marteau et Peinture blanche avec les bons montants.
-   - Cliquez **Encaisser** sur le ticket → mode de paiement **Orange
-     Money** → confirmez.
-   - ✅ **À vérifier** : cette fois le document généré est un simple
-     `Ticket AAAA-MM-JJ 14h32.pdf`, toujours sans numéro (les tickets
-     n'en ont jamais).
-   - ✅ **À vérifier** : la liste des commandes en attente est
-     maintenant vide.
-3. Essayez de recliquer *Encaisser* sur une commande déjà encaissée (si
-   possible depuis l'écran) ou de l'annuler :
-   - ✅ **À vérifier** : une commande déjà payée ne doit **jamais**
-     pouvoir être annulée depuis cet écran (elle n'apparaît plus dans la
-     liste, justement parce qu'elle est déjà traitée).
+2. Onglet **Historique des ventes** :
+   - ✅ **À vérifier** : les deux ventes de Chantal apparaissent
+     (« Enregistrée par Chantal Mbarga »), avec le bon numéro de facture
+     pour la première, « Ticket » pour la seconde, et le mode de paiement
+     de chacune (Espèces / Orange Money).
+3. Cliquez **Annuler** sur le ticket, pour tester une correction d'erreur
+   de saisie :
+   - Une confirmation doit s'afficher avant toute action.
+   - ✅ **À vérifier** : après confirmation, la ligne disparaît de
+     l'historique. Retournez sur Articles (Comptoir) : le stock de
+     Marteau doit avoir remonté de 1 (l'annulation restitue le stock).
 4. Onglet **Articles** → **Modifier** sur « Marteau » :
    - Changez le **Prix de vente** de `3500` à `3800` FCFA → Enregistrer.
    - Rouvrez **Modifier** sur le même article :
@@ -155,14 +154,13 @@ par site) : chaque compte ne voit et ne gère déjà que son propre site.*
      de prix par [votre nom] le [date] : vente 3500 → 3800 FCFA »*. C'est
      la traçabilité anti-vol.
 5. Onglet **Rapports** :
-   - ✅ **À vérifier** : le total des ventes doit inclure les deux
-     commandes encaissées à l'étape 3 (Marteau ×1 + Peinture ×2 sur la
-     facture, Marteau ×1 sur le ticket = 16 000 FCFA HT de marchandise,
-     soit environ 19 080 FCFA TTC avec la TVA à 19,25%).
+   - ✅ **À vérifier** : le total des ventes doit correspondre à la
+     facture encore valide de l'étape 3 (Marteau ×1 + Peinture ×2 = 12 500
+     FCFA HT, soit environ 14 906 FCFA TTC) — le ticket annulé à l'étape
+     précédente ne doit **plus** compter.
    - Cliquez **Exporter Excel**, enregistrez le fichier.
    - ✅ **À vérifier** : ouvrez-le — deux feuilles (« Résumé » et
-     « Produits les plus vendus »), avec le Marteau qui apparaît vendu
-     2 fois (1 sur la facture + 1 sur le ticket).
+     « Produits les plus vendus »).
 
 ---
 
@@ -174,13 +172,19 @@ planter l'application :
 1. **Stock insuffisant** : reconnectez-vous en `c.comptoir`, essayez de
    vendre 999 marteaux d'un coup → message d'erreur, aucune vente
    enregistrée.
-2. **Cloisonnement par site** : reconnectez-vous en `a.magasin` et
+2. **Mode de paiement obligatoire** : essayez d'enregistrer une vente —
+   le mode de paiement doit toujours avoir une valeur par défaut
+   sélectionnée (jamais de champ vide qui bloquerait l'enregistrement).
+3. **Cloisonnement par site** : reconnectez-vous en `a.magasin` et
    regardez la liste des articles.
    - ✅ **À vérifier** : le Marteau et la Peinture (articles du
      Comptoir) n'apparaissent **pas** dans la liste d'Amadou — chaque
      agent ne voit que les articles de son propre site ; seul le
-     responsable voit et gère les deux sites.
-3. **Compte désactivé** : en Franck, désactivez temporairement le compte
+     responsable voit et gère les deux sites. Notez aussi qu'Amadou n'a
+     pas d'onglet « Enregistrer une vente » ni « Historique des ventes »
+     — normal, ces deux écrans sont réservés à la comptabilité et au
+     responsable.
+4. **Compte désactivé** : en Franck, désactivez temporairement le compte
    `a.magasin`, puis essayez de vous connecter avec ce compte.
    - ✅ **À vérifier** : connexion refusée avec un message clair.
      Réactivez le compte ensuite pour ne pas bloquer Amadou.

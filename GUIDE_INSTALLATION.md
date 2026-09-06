@@ -46,6 +46,10 @@ première installation complète.
 - Les noms des 5 personnes qui utiliseront l'application et le rôle de
   chacune (responsable / agent stock / agent comptabilité), et sur quel
   site (magasin de stock ou comptoir).
+- Une imprimante ticket de caisse (thermique, en rouleau, 80mm) branchée
+  sur le poste comptabilité — c'est là que le reçu final s'imprime. Si
+  l'imprimante réelle fait 58mm plutôt que 80mm, il faut ajuster
+  `LARGEUR_TICKET_MM` dans `modules/facturation.py`.
 
 ## Étape 1 — Préparer le poste serveur
 
@@ -116,10 +120,12 @@ Récapitulatif à remplir pendant l'installation :
 - [ ] Chaque personne peut se connecter avec son propre identifiant
 - [ ] Chacune voit bien les onglets correspondant à son rôle (voir README,
       section « Circuit d'une vente » et « Navigation par rôle »)
-- [ ] Une commande test enregistrée par la comptabilité diminue bien le
-      stock (visible depuis un autre poste après actualisation)
-- [ ] Cette commande apparaît dans l'onglet **Caisse** du responsable, qui
-      peut l'encaisser — les recettes du jour n'augmentent qu'à ce moment-là
+- [ ] Une vente test enregistrée par la comptabilité (avec un mode de
+      paiement) diminue bien le stock (visible depuis un autre poste après
+      actualisation) et le reçu final s'imprime directement
+- [ ] Cette vente apparaît dans l'onglet **Historique des ventes** du
+      responsable, avec le bon montant et le bon mode de paiement — les
+      recettes du jour l'incluent immédiatement
 - [ ] Le responsable voit les ventes des deux sites dans son tableau de bord
 
 ## Supervision mobile (optionnel)

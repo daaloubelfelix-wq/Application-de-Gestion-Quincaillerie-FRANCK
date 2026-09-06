@@ -85,7 +85,7 @@ quincaillerie_app/
 │   ├── auth.py                   Authentification, verrouillage après 5 échecs
 │   ├── articles.py                Gestion des articles et du stock
 │   ├── ventes.py                  Enregistrement des ventes (transactionnel)
-│   ├── facturation.py             Génération des PDF (bon de commande, ticket, facture)
+│   ├── facturation.py             Génération du reçu PDF (format imprimante ticket, 2 copies)
 │   ├── comptabilite.py            Recettes, dépenses, historique
 │   ├── rapports.py                Totaux par période, produits les plus vendus
 │   ├── fournisseurs.py            Gestion des fournisseurs
@@ -97,8 +97,8 @@ quincaillerie_app/
 │   ├── gestion_articles.py        Liste, ajout, modification des articles
 │   ├── formulaire_article.py      Formulaire article
 │   ├── formulaire_mouvement_stock.py  Formulaire d'entrée/sortie de stock manuelle
-│   ├── point_de_vente.py          Nouvelle commande (comptabilité) — panier, bon de commande
-│   ├── caisse.py                  Caisse (responsable) — encaissement (génère le document final), annulation
+│   ├── point_de_vente.py          Enregistrer une vente (comptabilité) — déjà payée, imprime le reçu final
+│   ├── caisse.py                  Historique des ventes (responsable) — vérification, annulation
 │   ├── style.qss                  Feuille de style globale de l'application
 │   ├── comptabilite.py            Écran comptabilité
 │   ├── formulaire_transaction.py  Formulaire recette/dépense manuelle
@@ -177,24 +177,33 @@ un premier essai, mais l'adresse change à chaque redémarrage.)*
 
 ## Circuit d'une vente
 
-Reflète le fonctionnement réel de la boutique — trois personnes, trois
-étapes. Inspiré du fonctionnement d'une pharmacie : **jamais de document
-numéroté avant que l'argent soit reçu**.
+Reflète le fonctionnement réel de la boutique. Le paiement se fait
+physiquement, hors de l'application, avant toute saisie informatique :
 
 1. **Le client choisit sa marchandise**, le magasin de stock s'assure juste
    que les articles et les quantités disponibles sont à jour (il ne vend pas
    directement).
-2. **La comptabilité enregistre la commande** (onglet « Nouvelle commande ») :
-   le stock est retiré à ce moment-là, et un **bon de commande** (non
-   fiscal, pas de numéro) indiquant le montant à payer est imprimé — ce
-   n'est pas encore une facture ni un ticket.
-3. **Le client va payer à la caisse**, tenue par le responsable (onglet
-   « Caisse ») : c'est seulement à cet instant que le paiement compte dans
-   les recettes du jour, ET que le document final est généré — une facture
-   numérotée séquentiellement (`2026-0001`, `2026-0002`, ...) ou un simple
-   ticket, selon ce que la comptabilité avait choisi à l'étape 2. Le
-   responsable peut aussi annuler une commande non payée (le stock retiré
-   est alors restitué).
+2. **Le client paie directement à la caisse**, tenue par le responsable :
+   celui-ci note la vente à la main sur le facturier papier. Rien n'est
+   encore saisi dans l'ordinateur à ce stade.
+3. **La comptabilité saisit tout dans l'ordinateur, en une seule fois**
+   (onglet « Enregistrer une vente »), à partir de cette note — puisque
+   l'argent est déjà reçu, cette unique saisie : retire le stock, crée la
+   recette comptable du jour, attribue le numéro de facture si le client a
+   demandé une facture (`2026-0001`, `2026-0002`, ... — jamais avant ce
+   moment, pour qu'un numéro corresponde toujours à un paiement réellement
+   reçu), et imprime directement le reçu final.
+4. **Impression** : le reçu est formaté pour une imprimante ticket de caisse
+   (thermique, en rouleau — voir `modules/facturation.py`, 80mm par défaut)
+   et non pour une imprimante de bureau. Un seul passage imprime deux
+   exemplaires à la suite sur le même rouleau — COPIE CLIENT puis COPIE
+   MAGASIN, séparées par une ligne de coupe — comme un carnet à souche à
+   papier carbone. La longueur du reçu varie selon le nombre d'articles.
+5. **Correction d'une erreur de saisie** : le responsable peut annuler une
+   vente déjà enregistrée depuis l'onglet « Historique des ventes » (le
+   stock est restitué et la recette retirée) — réservé au responsable, car
+   lui seul sait, ayant reçu l'argent, si une correction après paiement est
+   légitime.
 
 ### Séparer inventaire et facturation, par site
 
@@ -204,15 +213,16 @@ partout dans le code (catalogue, recherche d'articles pour la vente). Rien
 n'empêche donc de créer, par exemple, 4 comptes distincts : un agent stock
 + un agent comptabilité pour le Magasin de stock, et de même pour le
 Comptoir — chacun ne s'occupant que de sa tâche (inventaire OU
-facturation) sur son propre site. Seule la Caisse reste commune aux deux
-sites (rôle responsable).
+facturation) sur son propre site. Seule la caisse physique reste commune
+aux deux sites (le responsable).
 
 ## Navigation par rôle
 
 - **Agent stock** : Tableau de bord, Articles, Fournisseurs
-- **Agent comptabilité** : Tableau de bord, Comptabilité, Nouvelle commande
-- **Responsable** : Tableau de bord (consolidé), Articles (tous sites), Caisse,
-  Rapports, Fournisseurs, Utilisateurs
+- **Agent comptabilité** : Tableau de bord, Comptabilité, Enregistrer une vente
+- **Responsable** : Tableau de bord (consolidé), Articles (tous sites),
+  Historique des ventes (vérification/annulation), Rapports, Fournisseurs,
+  Utilisateurs
 
 ## Ce qui est fonctionnel
 
@@ -227,16 +237,17 @@ sites (rôle responsable).
   prix mais ne peut pas les modifier) ; tout changement de prix est de toute
   façon enregistré (qui, quand, ancien → nouveau montant), visible dans le
   formulaire de modification de l'article
-- Commande client (comptabilité) avec génération d'un bon de commande PDF
-  non fiscal (TVA à 19,25% incluse dans le calcul) — enregistrement
-  transactionnel (une commande est écrite intégralement ou pas du tout)
-- Caisse (responsable) : encaissement (Espèces, Orange Money, MTN Mobile
-  Money, Crédit client, Autre) ou annulation des commandes en attente,
-  tous sites confondus — c'est l'encaissement qui génère et numérote le
-  document final (ticket rapide ou facture détaillée, selon le choix fait
-  à l'enregistrement de la commande)
-- Comptabilité : les encaissements créent automatiquement une recette,
-  saisie manuelle possible pour les dépenses
+- Enregistrement d'une vente (comptabilité, déjà payée à la caisse) : choix
+  du mode de paiement (Espèces, Orange Money, MTN Mobile Money, Crédit
+  client, Autre) et du type de document (ticket ou facture détaillée) ;
+  une seule saisie transactionnelle retire le stock, crée la recette,
+  attribue le numéro de facture si nécessaire, et imprime le reçu final
+  au format imprimante ticket (deux copies, TVA à 19,25% incluse)
+- Historique des ventes (responsable) : consultation du jour, tous sites
+  confondus, avec annulation d'une vente en cas d'erreur de saisie (stock
+  restitué, recette retirée)
+- Comptabilité : les ventes créent automatiquement une recette, saisie
+  manuelle possible pour les dépenses
 - Rapports : total des ventes payées, marge estimée, produits les plus vendus,
   filtrables par période et par site
 - Fournisseurs : fiches avec liste des articles fournis
@@ -249,9 +260,10 @@ sites (rôle responsable).
   cohérente (voir `ui/style.qss`)
 - Écran d'accueil illustré, avec la connexion dans un panneau dédié ;
   bouton pour afficher/masquer le mot de passe (identifiant, création de
-  compte) ; après l'enregistrement d'une commande, bouton « Aperçu et
-  impression » qui ouvre le PDF (nommé « Facture n° … » ou « Ticket … »)
-  dans le lecteur par défaut, pour toujours voir l'aperçu avant d'imprimer
+  compte) ; après l'enregistrement d'une vente, bouton « Aperçu et
+  impression » qui ouvre le reçu PDF (nommé « Facture n° … » ou
+  « Ticket … ») dans le lecteur par défaut, pour toujours voir l'aperçu
+  avant d'imprimer
 - Export Excel (.xlsx) du stock (écran Articles) et des rapports de ventes
   (écran Rapports)
 
