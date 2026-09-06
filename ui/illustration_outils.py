@@ -6,14 +6,16 @@ voir README.
 """
 
 from PyQt6.QtCore import QPointF, QRectF, Qt
-from PyQt6.QtGui import QColor, QFont, QLinearGradient, QPainter, QPen, QPolygonF
+from PyQt6.QtGui import QColor, QFont, QLinearGradient, QPainter, QPainterPath, QPen, QPolygonF
 from PyQt6.QtWidgets import QWidget
 
 
 class IllustrationOutils(QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, rayon_coins=0, afficher_titre=True):
         super().__init__(parent)
         self.setMinimumWidth(360)
+        self.rayon_coins = rayon_coins
+        self.afficher_titre = afficher_titre
 
     def paintEvent(self, event):
         peintre = QPainter(self)
@@ -21,6 +23,11 @@ class IllustrationOutils(QWidget):
 
         largeur = self.width()
         hauteur = self.height()
+
+        if self.rayon_coins:
+            chemin = QPainterPath()
+            chemin.addRoundedRect(QRectF(self.rect()), self.rayon_coins, self.rayon_coins)
+            peintre.setClipPath(chemin)
 
         degrade = QLinearGradient(0, 0, largeur, hauteur)
         degrade.setColorAt(0.0, QColor("#3D5066"))
@@ -34,7 +41,8 @@ class IllustrationOutils(QWidget):
         self._dessiner_vis(peintre, largeur * 0.32, hauteur * 0.74, largeur * 0.035)
         self._dessiner_vis(peintre, largeur * 0.14, hauteur * 0.55, largeur * 0.03)
 
-        self._dessiner_titre(peintre, largeur, hauteur)
+        if self.afficher_titre:
+            self._dessiner_titre(peintre, largeur, hauteur)
         peintre.end()
 
     def _dessiner_titre(self, peintre, largeur, hauteur):

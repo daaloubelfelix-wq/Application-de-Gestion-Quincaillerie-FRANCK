@@ -135,23 +135,7 @@ QDialog {
     background-color: #F3F1EC;
 }
 
-/* ---------- Écran de connexion ---------- */
-QWidget#panneauConnexion {
-    background-color: #FBFAF7;
-}
-QFrame#carteConnexionEcran {
-    background-color: #FFFFFF;
-    border: 1px solid #DDD7C9;
-    border-radius: 10px;
-}
-QLabel#texteErreur {
-    color: #A8431C;
-    font-size: 12px;
-}
-QFrame#carteConnexionEcran QPushButton {
-    padding: 10px 16px;
-    font-size: 13px;
-}
+/* Bouton "œil" de visibilité du mot de passe (formulaires en thème clair) */
 QPushButton#boutonOeil {
     background-color: #FFFFFF;
     border: 1px solid #DDD7C9;
@@ -164,4 +148,134 @@ QPushButton#boutonOeil:hover {
 QPushButton#boutonOeil:checked {
     background-color: #F3E2B8;
     border: 1px solid #B8710F;
+}
+
+/* ---------- Écran d'accueil et de connexion (thème sombre) ---------- */
+QScrollArea#defilementAccueil {
+    background-color: #17212C;
+    border: none;
+}
+QWidget#ecranAccueil {
+    background-color: #17212C;
+}
+QWidget#ecranAccueil QLabel {
+    color: #E7ECF1;
+}
+
+QWidget#enteteAccueil {
+    background-color: #121A23;
+    border-bottom: 1px solid #232F3B;
+}
+QLabel#logoAccueil {
+    font-size: 18px;
+    font-weight: 700;
+    color: #FFFFFF;
+}
+QLabel#sloganAccueil {
+    color: #8FA0AF;
+    font-size: 11px;
+}
+
+QWidget#heroAccueil {
+    background-color: #17212C;
+}
+QWidget#colonneTexteHero {
+    background-color: transparent;
+}
+QLabel#titreHero {
+    font-size: 27px;
+    font-weight: 800;
+    color: #FFFFFF;
+}
+QLabel#sousTitreHero {
+    color: #AAB8C4;
+    font-size: 13px;
+}
+QFrame#cadrePhoto {
+    background-color: transparent;
+}
+
+QFrame#carteConnexionHero {
+    background-color: #1F2B38;
+    border: 1px solid #33465A;
+    border-radius: 12px;
+}
+QLabel#titreCarteConnexion {
+    font-size: 15px;
+    font-weight: 700;
+    color: #FFFFFF;
+}
+QFrame#carteConnexionHero QLineEdit {
+    background-color: #17212C;
+    border: 1px solid #33465A;
+    color: #FFFFFF;
+    selection-background-color: #E8A23A;
+}
+QFrame#carteConnexionHero QLineEdit:focus {
+    border: 1px solid #E8A23A;
+}
+QPushButton#boutonConnexionHero {
+    background-color: #E8A23A;
+    color: #17212C;
+    padding: 10px 16px;
+    font-size: 13px;
+}
+QPushButton#boutonConnexionHero:hover {
+    background-color: #F0B458;
+}
+QPushButton#boutonConnexionHero:pressed {
+    background-color: #D08F2E;
+}
+QPushButton#boutonOeilHero {
+    background-color: #17212C;
+    border: 1px solid #33465A;
+    border-radius: 6px;
+    padding: 0;
+}
+QPushButton#boutonOeilHero:hover {
+    background-color: #26364A;
+}
+QPushButton#boutonOeilHero:checked {
+    background-color: #2C3B4A;
+    border: 1px solid #E8A23A;
+}
+QLabel#texteErreurHero {
+    color: #FF8A65;
+    font-size: 12px;
+}
+QLabel#texteAideHero {
+    color: #7C8B99;
+    font-size: 11px;
+}
+
+QWidget#sectionFonctionnalites {
+    background-color: #17212C;
+}
+QFrame#carteFonctionnalite {
+    background-color: #1F2B38;
+    border: 1px solid #2C3B4A;
+    border-radius: 10px;
+}
+QLabel#titreCarteFonctionnalite {
+    font-size: 13px;
+    font-weight: 700;
+    color: #FFFFFF;
+}
+QLabel#texteCarteFonctionnalite {
+    color: #97A6B4;
+    font-size: 11px;
+}
+
+QFrame#piedAccueil {
+    background-color: #121A23;
+    border-top: 1px solid #232F3B;
+}
+QLabel#texteFooterAccueil {
+    color: #7C8B99;
+    font-size: 11px;
+}
+QLabel#contactAccueil {
+    color: #E8A23A;
+    font-weight: 700;
+    font-size: 12px;
 }
