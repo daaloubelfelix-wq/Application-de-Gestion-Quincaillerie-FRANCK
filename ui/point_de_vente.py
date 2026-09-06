@@ -15,7 +15,7 @@ from datetime import datetime
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton, QLabel,
-    QListWidget, QListWidgetItem, QMessageBox, QComboBox, QFrame
+    QListWidget, QListWidgetItem, QMessageBox, QComboBox, QFrame, QSpinBox
 )
 from PyQt6.QtCore import Qt
 
@@ -63,6 +63,20 @@ class PointDeVente(QWidget):
         self.liste_resultats.setMaximumHeight(120)
         self.liste_resultats.itemDoubleClicked.connect(self._ajouter_au_panier)
         layout.addWidget(self.liste_resultats)
+
+        # Quantité + ajout au panier — on choisit la quantité une seule
+        # fois, pas besoin de cliquer plusieurs fois pour une grande quantité.
+        ligne_quantite = QHBoxLayout()
+        ligne_quantite.addWidget(QLabel("Quantité :"))
+        self.champ_quantite = QSpinBox()
+        self.champ_quantite.setRange(1, 99999)
+        self.champ_quantite.setValue(1)
+        ligne_quantite.addWidget(self.champ_quantite)
+        bouton_ajouter = QPushButton("Ajouter au panier")
+        bouton_ajouter.clicked.connect(self._ajouter_selection_au_panier)
+        ligne_quantite.addWidget(bouton_ajouter)
+        ligne_quantite.addStretch()
+        layout.addLayout(ligne_quantite)
 
         # Panier
         titre_panier = QLabel("Panier")
@@ -129,8 +143,19 @@ class PointDeVente(QWidget):
             item.setData(Qt.ItemDataRole.UserRole, article)
             self.liste_resultats.addItem(item)
 
+    def _ajouter_selection_au_panier(self):
+        item = self.liste_resultats.currentItem()
+        if item is None:
+            QMessageBox.information(
+                self, "Aucun article sélectionné",
+                "Sélectionnez d'abord un article dans la liste des résultats."
+            )
+            return
+        self._ajouter_au_panier(item)
+
     def _ajouter_au_panier(self, item):
         article = item.data(Qt.ItemDataRole.UserRole)
+        quantite_demandee = self.champ_quantite.value()
 
         if article["quantite_stock"] <= 0:
             QMessageBox.warning(self, "Rupture de stock", f"'{article['nom']}' n'est plus en stock.")
@@ -139,21 +164,28 @@ class PointDeVente(QWidget):
         # Si déjà dans le panier, on augmente juste la quantité
         for ligne in self.panier:
             if ligne["article_id"] == article["id"]:
-                if ligne["quantite"] + 1 > article["quantite_stock"]:
+                nouvelle_quantite = ligne["quantite"] + quantite_demandee
+                if nouvelle_quantite > article["quantite_stock"]:
                     QMessageBox.warning(self, "Stock insuffisant", f"Stock disponible : {article['quantite_stock']}.")
                     return
-                ligne["quantite"] += 1
+                ligne["quantite"] = nouvelle_quantite
                 self._rafraichir_panier()
+                self.champ_quantite.setValue(1)
                 return
+
+        if quantite_demandee > article["quantite_stock"]:
+            QMessageBox.warning(self, "Stock insuffisant", f"Stock disponible : {article['quantite_stock']}.")
+            return
 
         self.panier.append({
             "article_id": article["id"],
             "nom": article["nom"],
-            "quantite": 1,
+            "quantite": quantite_demandee,
             "prix_unitaire": float(article["prix_vente"]),
             "stock_disponible": article["quantite_stock"],
         })
         self._rafraichir_panier()
+        self.champ_quantite.setValue(1)
 
     def _retirer_du_panier(self):
         index = self.liste_panier.currentRow()
