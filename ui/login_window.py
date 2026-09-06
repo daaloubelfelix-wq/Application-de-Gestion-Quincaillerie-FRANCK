@@ -56,9 +56,9 @@ class LoginWindow(QWidget):
         layout = QVBoxLayout()
         layout.setContentsMargins(30, 40, 30, 40)
         layout.addStretch()
-        layout.addWidget(self._construire_plaque_enseigne())
+        layout.addWidget(self._construire_plaque_enseigne(), alignment=Qt.AlignmentFlag.AlignHCenter)
         layout.addSpacing(28)
-        layout.addWidget(self._construire_carte_connexion())
+        layout.addWidget(self._construire_carte_connexion(), alignment=Qt.AlignmentFlag.AlignHCenter)
         layout.addStretch()
         self.setLayout(layout)
 
