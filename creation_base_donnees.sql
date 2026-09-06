@@ -127,7 +127,7 @@ CREATE TABLE ventes (
         mode_paiement IN ('especes', 'orange_money', 'mtn_momo', 'credit_client', 'autre')
     ),  -- rempli à l'encaissement, voir modules/paiement.py
     sous_total_ht NUMERIC(12,2) NOT NULL,
-    taux_tva NUMERIC(5,2) NOT NULL DEFAULT 19.25,
+    taux_tva NUMERIC(5,2) NOT NULL DEFAULT 0,
     montant_tva NUMERIC(12,2) NOT NULL,
     total_ttc NUMERIC(12,2) NOT NULL,
     date_vente TIMESTAMP NOT NULL DEFAULT NOW(),

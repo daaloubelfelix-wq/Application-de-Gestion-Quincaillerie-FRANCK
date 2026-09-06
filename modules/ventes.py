@@ -10,12 +10,13 @@ c'est cette saisie (enregistrer_vente) qui retire le stock, crée la
 recette comptable, attribue le numéro de facture si nécessaire, ET génère
 le reçu final à imprimer (voir modules/facturation.py).
 
-Le taux de TVA (19,25%) est calculé une seule fois, dans
-modules/facturation.py, pour éviter toute incohérence.
+Le taux de TVA est calculé une seule fois, dans modules/facturation.py,
+pour éviter toute incohérence (actuellement 0% : la marchandise est déjà
+taxée à l'achat auprès du fournisseur).
 """
 
 from database import Database
-from modules.facturation import calculer_totaux, prochain_numero_facture
+from modules.facturation import calculer_totaux, prochain_numero_facture, TAUX_TVA
 
 
 def enregistrer_vente(utilisateur, lignes_panier, type_document, mode_paiement):
@@ -75,7 +76,7 @@ def enregistrer_vente(utilisateur, lignes_panier, type_document, mode_paiement):
                 (site_id, utilisateur_id, type_document, numero_facture, statut,
                  mode_paiement, date_encaissement,
                  sous_total_ht, taux_tva, montant_tva, total_ttc)
-            VALUES (%s, %s, %s, %s, 'payee', %s, NOW(), %s, 19.25, %s, %s)
+            VALUES (%s, %s, %s, %s, 'payee', %s, NOW(), %s, %s, %s, %s)
             RETURNING id, date_vente
             """,
             (
@@ -85,6 +86,7 @@ def enregistrer_vente(utilisateur, lignes_panier, type_document, mode_paiement):
                 numero_facture,
                 mode_paiement,
                 sous_total_ht,
+                TAUX_TVA,
                 montant_tva,
                 total_ttc,
             ),

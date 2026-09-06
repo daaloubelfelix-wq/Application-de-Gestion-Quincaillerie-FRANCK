@@ -1,6 +1,8 @@
 """
 Génération du reçu de vente en PDF, au format d'une imprimante ticket de
-caisse (thermique, rouleau) — pas une imprimante de bureau A4/A5.
+caisse (thermique, rouleau) — pas une imprimante de bureau A4/A5. Mise en
+page inspirée d'un ticket de caisse classique (police à chasse fixe,
+séparateurs en tirets, montants alignés à points de suite, code-barres).
 
 Circuit réel de la boutique (voir README, section « Circuit d'une
 vente ») : le client paie d'abord directement à la caisse (le responsable
@@ -10,6 +12,9 @@ reçu — c'est cette saisie qui génère et imprime directement le reçu
 final (voir modules/ventes.py, enregistrer_vente). Il n'y a donc plus de
 document intermédiaire avant paiement.
 
+TVA à 0% : la marchandise est achetée déjà taxée auprès du fournisseur,
+elle n'est pas taxée une seconde fois à la revente.
+
 Le reçu imprime deux exemplaires à la suite sur le même rouleau (COPIE
 CLIENT puis COPIE MAGASIN), comme un carnet à souche à papier carbone —
 une seule impression suffit.
@@ -18,24 +23,26 @@ Largeur réglée pour une imprimante 80mm (la plus courante) ; si
 l'imprimante réelle fait 58mm, changer LARGEUR_TICKET_MM ci-dessous.
 """
 
+from reportlab.lib import colors
 from reportlab.lib.units import mm
 from reportlab.pdfgen import canvas
 from reportlab.pdfbase.pdfmetrics import stringWidth
+from reportlab.graphics.barcode import code128
 from datetime import datetime
 
 NOM_ETABLISSEMENT = "Ets Quincaillerie Franck"
 ADRESSE_ETABLISSEMENT = "Batouri, Région de l'Est, Cameroun"
 TELEPHONES_ETABLISSEMENT = "699 861217 / 654 226348"
-TAUX_TVA = 19.25  # en pourcentage
+TAUX_TVA = 0  # en pourcentage — déjà taxé à l'achat auprès du fournisseur
 
 LARGEUR_TICKET_MM = 80
 LARGEUR_TICKET = LARGEUR_TICKET_MM * mm
 MARGE_TICKET = 3 * mm
 LARGEUR_UTILE = LARGEUR_TICKET - 2 * MARGE_TICKET
 
-_POLICE_NORMALE = "Helvetica"
-_POLICE_GRASSE = "Helvetica-Bold"
-_POLICE_OBLIQUE = "Helvetica-Oblique"
+_POLICE_NORMALE = "Courier"
+_POLICE_GRASSE = "Courier-Bold"
+_COULEUR_TRAIT = colors.HexColor("#152C4D")
 
 
 def calculer_totaux(lignes_panier):
@@ -74,29 +81,77 @@ def _lignes_articles_decoupees(lignes_panier):
     """Pour chaque article, la ou les lignes de nom (si trop long) + la ligne de détail."""
     resultat = []
     for ligne in lignes_panier:
-        lignes_nom = _decouper_texte(ligne["nom"], _POLICE_NORMALE, 9, LARGEUR_UTILE)
+        lignes_nom = _decouper_texte(ligne["nom"].upper(), _POLICE_NORMALE, 8, LARGEUR_UTILE)
         detail = f"{ligne['quantite']} x {_formater_montant(ligne['prix_unitaire'])}"
         total_ligne = _formater_montant(ligne["quantite"] * ligne["prix_unitaire"])
         resultat.append((lignes_nom, detail, total_ligne))
     return resultat
 
 
+def _ligne_pointillee(c, y, gauche, droite, police=_POLICE_NORMALE, taille=8):
+    """Ex : "TOTAL . . . . . . . . 12 500 FCFA" — une seule chaîne, largeur exacte."""
+    largeur_point = stringWidth(".", police, taille)
+    largeur_fixe = stringWidth(f"{gauche} ", police, taille) + stringWidth(f" {droite}", police, taille)
+    nb_points = max(3, int((LARGEUR_UTILE - largeur_fixe) / largeur_point))
+    ligne = f"{gauche} {'.' * nb_points} {droite}"
+    c.setFont(police, taille)
+    c.drawString(MARGE_TICKET, y, ligne)
+
+
+def _ligne_tiretee(c, y):
+    c.setFont(_POLICE_NORMALE, 8)
+    largeur_tiret = stringWidth("-", _POLICE_NORMALE, 8)
+    nb_tirets = int(LARGEUR_UTILE / largeur_tiret)
+    c.drawString(MARGE_TICKET, y, "-" * nb_tirets)
+
+
+def _dessiner_logo(c, cx, cy, rayon):
+    """Petit insigne dessiné (cercle + clé stylisée), pas de fichier image."""
+    c.saveState()
+    c.setStrokeColor(_COULEUR_TRAIT)
+    c.setLineWidth(1.2)
+    c.circle(cx, cy, rayon, stroke=1, fill=0)
+
+    c.setLineWidth(2.4)
+    c.setLineCap(1)
+    dx, dy = rayon * 0.5, rayon * 0.5
+    c.line(cx - dx, cy - dy, cx + dx, cy + dy)
+    c.setFillColor(_COULEUR_TRAIT)
+    c.circle(cx - dx, cy - dy, rayon * 0.24, stroke=0, fill=1)
+    c.circle(cx + dx, cy + dy, rayon * 0.24, stroke=0, fill=1)
+    c.restoreState()
+
+
 def _hauteur_une_copie(lignes_articles_decoupees):
     """Hauteur en points nécessaire pour dessiner UNE copie du reçu."""
     hauteur = 0
-    hauteur += 17.5 * mm          # nom + adresse + téléphone
-    hauteur += 4 * (5 * mm)       # titre document, date/heure, vendeur, mode de paiement
-    hauteur += 5 * mm             # ligne + espace avant articles
+    hauteur += 9 * mm             # logo
+    hauteur += 5 * mm + 4.5 * mm  # nom établissement + site
+    hauteur += 5 * mm             # ligne tiretée + espace
+    hauteur += 4 * mm + 4 * mm    # adresse + téléphone
+    hauteur += 5 * mm             # ligne tiretée + espace
+    hauteur += 5 * mm             # titre document
+    hauteur += 4 * mm             # date/heure
+    hauteur += 4 * mm             # vente n° / vendeur
+    hauteur += 5 * mm             # ligne tiretée + espace
     for lignes_nom, _, _ in lignes_articles_decoupees:
-        hauteur += len(lignes_nom) * 4.2 * mm
-        hauteur += 7 * mm         # ligne de détail (qté x pu = total)
-    hauteur += 5 * mm             # ligne + espace avant totaux
-    hauteur += 5 * mm + 5.5 * mm + 8 * mm  # sous-total, tva, total
-    hauteur += 6 * mm + 4 * mm    # remerciement + étiquette "COPIE ..."
+        hauteur += len(lignes_nom) * 3.8 * mm
+        hauteur += 4.5 * mm       # ligne de détail (qté x pu = total)
+    hauteur += 5 * mm             # ligne tiretée + espace
+    hauteur += 4 * mm + 4 * mm    # sous-total, tva
+    hauteur += 5 * mm             # ligne tiretée + espace
+    hauteur += 5.5 * mm           # total
+    hauteur += 5 * mm             # ligne tiretée + espace
+    hauteur += 4.5 * mm           # mode de paiement
+    hauteur += 7 * mm             # espace + merci
+    hauteur += 3.8 * mm           # réclamation
+    hauteur += 6 * mm             # espace + code-barres
+    hauteur += 3.8 * mm           # texte sous le code-barres
+    hauteur += 6 * mm             # étiquette "COPIE ..."
     return hauteur
 
 
-def _dessiner_une_copie(c, y_haut, etiquette_copie, type_document, numero_facture,
+def _dessiner_une_copie(c, y_haut, etiquette_copie, vente_id, type_document, numero_facture,
                          lignes_articles_decoupees, sous_total_ht, montant_tva, total_ttc,
                          nom_vendeur, mode_paiement_libelle, site_nom):
     """Dessine une copie complète du reçu, en partant de y_haut vers le bas.
@@ -104,60 +159,91 @@ def _dessiner_une_copie(c, y_haut, etiquette_copie, type_document, numero_factur
     centre = LARGEUR_TICKET / 2
     y = y_haut
 
-    c.setFont(_POLICE_GRASSE, 10)
-    c.drawCentredString(centre, y, NOM_ETABLISSEMENT)
-    y -= 5 * mm
-    c.setFont(_POLICE_NORMALE, 7)
-    c.drawCentredString(centre, y, f"{site_nom} · {ADRESSE_ETABLISSEMENT}")
-    y -= 4.5 * mm
-    c.drawCentredString(centre, y, f"Tél : {TELEPHONES_ETABLISSEMENT}")
-    y -= 8 * mm
+    _dessiner_logo(c, centre, y - 3 * mm, 3.6 * mm)
+    y -= 9 * mm
 
-    c.setFont(_POLICE_GRASSE, 9)
+    c.setFont(_POLICE_GRASSE, 10)
+    c.drawCentredString(centre, y, NOM_ETABLISSEMENT.upper())
+    y -= 5 * mm
+    c.setFont(_POLICE_NORMALE, 8)
+    c.drawCentredString(centre, y, site_nom.upper())
+    y -= 4.5 * mm
+
+    _ligne_tiretee(c, y)
+    y -= 5 * mm
+
+    c.setFont(_POLICE_NORMALE, 7)
+    c.drawCentredString(centre, y, ADRESSE_ETABLISSEMENT)
+    y -= 4 * mm
+    c.drawCentredString(centre, y, f"TEL : {TELEPHONES_ETABLISSEMENT}")
+    y -= 4 * mm
+
+    _ligne_tiretee(c, y)
+    y -= 5 * mm
+
+    c.setFont(_POLICE_GRASSE, 10)
     titre_document = f"FACTURE N° {numero_facture}" if type_document == "facture" else "TICKET DE CAISSE"
     c.drawCentredString(centre, y, titre_document)
     y -= 5 * mm
-    c.setFont(_POLICE_NORMALE, 7)
-    c.drawCentredString(centre, y, datetime.now().strftime("%d/%m/%Y %H:%M"))
-    y -= 5 * mm
-    c.drawCentredString(centre, y, f"Vendu par {nom_vendeur}")
-    y -= 5 * mm
-    c.drawCentredString(centre, y, f"Paiement : {mode_paiement_libelle}")
-    y -= 6 * mm
 
-    c.line(MARGE_TICKET, y, LARGEUR_TICKET - MARGE_TICKET, y)
+    c.setFont(_POLICE_NORMALE, 7)
+    maintenant = datetime.now()
+    c.drawString(MARGE_TICKET, y, f"Date : {maintenant.strftime('%d/%m/%Y')}")
+    c.drawRightString(LARGEUR_TICKET - MARGE_TICKET, y, maintenant.strftime("%H:%M"))
+    y -= 4 * mm
+    c.drawString(MARGE_TICKET, y, f"Vente N° {vente_id}")
+    c.drawRightString(LARGEUR_TICKET - MARGE_TICKET, y, f"Vendu par {nom_vendeur}")
+    y -= 5 * mm
+
+    _ligne_tiretee(c, y)
     y -= 5 * mm
 
     for lignes_nom, detail, total_ligne in lignes_articles_decoupees:
-        c.setFont(_POLICE_NORMALE, 9)
+        c.setFont(_POLICE_NORMALE, 8)
         for ligne_nom in lignes_nom:
             c.drawString(MARGE_TICKET, y, ligne_nom)
-            y -= 4.2 * mm
-        c.setFont(_POLICE_NORMALE, 8)
+            y -= 3.8 * mm
         c.drawString(MARGE_TICKET, y, detail)
         c.drawRightString(LARGEUR_TICKET - MARGE_TICKET, y, total_ligne)
-        y -= 7 * mm
+        y -= 4.5 * mm
 
-    c.line(MARGE_TICKET, y, LARGEUR_TICKET - MARGE_TICKET, y)
+    _ligne_tiretee(c, y)
     y -= 5 * mm
 
-    c.setFont(_POLICE_NORMALE, 8)
-    c.drawString(MARGE_TICKET, y, "Sous-total HT")
-    c.drawRightString(LARGEUR_TICKET - MARGE_TICKET, y, _formater_montant(sous_total_ht))
-    y -= 5 * mm
-    c.drawString(MARGE_TICKET, y, f"TVA ({TAUX_TVA}%)")
-    c.drawRightString(LARGEUR_TICKET - MARGE_TICKET, y, _formater_montant(montant_tva))
+    _ligne_pointillee(c, y, "SOUS-TOTAL", _formater_montant(sous_total_ht))
+    y -= 4 * mm
+    _ligne_pointillee(c, y, f"TVA ({TAUX_TVA}%)", _formater_montant(montant_tva))
+    y -= 4 * mm
+
+    _ligne_tiretee(c, y)
     y -= 5.5 * mm
 
-    c.setFont(_POLICE_GRASSE, 10)
-    c.drawString(MARGE_TICKET, y, "TOTAL TTC")
-    c.drawRightString(LARGEUR_TICKET - MARGE_TICKET, y, _formater_montant(total_ttc))
-    y -= 8 * mm
+    _ligne_pointillee(c, y, "TOTAL", _formater_montant(total_ttc), police=_POLICE_GRASSE, taille=11)
+    y -= 5 * mm
 
-    c.setFont(_POLICE_OBLIQUE, 7)
-    c.drawCentredString(centre, y, "Merci de votre achat")
+    _ligne_tiretee(c, y)
+    y -= 4.5 * mm
+
+    c.setFont(_POLICE_NORMALE, 8)
+    c.drawCentredString(centre, y, f"MODE PAIEMENT : {mode_paiement_libelle.upper()}")
+    y -= 7 * mm
+
+    c.setFont(_POLICE_GRASSE, 10)
+    c.drawCentredString(centre, y, "MERCI DE VOTRE ACHAT !")
+    y -= 3.8 * mm
+    c.setFont(_POLICE_NORMALE, 6.5)
+    c.drawCentredString(centre, y, "Conservez ce reçu pour toute réclamation.")
     y -= 6 * mm
 
+    code_barre_valeur = numero_facture if numero_facture else f"T{vente_id:06d}"
+    code_barre = code128.Code128(code_barre_valeur, barHeight=6 * mm, barWidth=0.7)
+    code_barre.drawOn(c, centre - code_barre.width / 2, y - 6 * mm)
+    y -= 6 * mm
+    c.setFont(_POLICE_NORMALE, 7)
+    c.drawCentredString(centre, y - 3.8 * mm, f"*{code_barre_valeur}*")
+    y -= 3.8 * mm
+
+    y -= 6 * mm
     c.setFont(_POLICE_GRASSE, 8)
     c.drawCentredString(centre, y, f"— {etiquette_copie} —")
     y -= 4 * mm
@@ -165,7 +251,7 @@ def _dessiner_une_copie(c, y_haut, etiquette_copie, type_document, numero_factur
     return y
 
 
-def generer_recu_thermique_pdf(chemin_fichier, type_document, numero_facture, lignes_panier,
+def generer_recu_thermique_pdf(chemin_fichier, vente_id, type_document, numero_facture, lignes_panier,
                                 nom_vendeur, mode_paiement, site_nom):
     """
     Génère le reçu final (facture numérotée ou ticket) au format imprimante
@@ -189,7 +275,7 @@ def generer_recu_thermique_pdf(chemin_fichier, type_document, numero_facture, li
     y = hauteur_page - marge_haute_basse
     for etiquette in ("COPIE CLIENT", "COPIE MAGASIN"):
         y = _dessiner_une_copie(
-            c, y, etiquette, type_document, numero_facture, lignes_decoupees,
+            c, y, etiquette, vente_id, type_document, numero_facture, lignes_decoupees,
             sous_total_ht, montant_tva, total_ttc, nom_vendeur, mode_paiement_libelle, site_nom,
         )
         if etiquette == "COPIE CLIENT":

@@ -195,10 +195,14 @@ physiquement, hors de l'application, avant toute saisie informatique :
    reçu), et imprime directement le reçu final.
 4. **Impression** : le reçu est formaté pour une imprimante ticket de caisse
    (thermique, en rouleau — voir `modules/facturation.py`, 80mm par défaut)
-   et non pour une imprimante de bureau. Un seul passage imprime deux
+   et non pour une imprimante de bureau — mise en page façon ticket de
+   caisse classique (police à chasse fixe, séparateurs en tirets, montants
+   alignés à points de suite, code-barres). Un seul passage imprime deux
    exemplaires à la suite sur le même rouleau — COPIE CLIENT puis COPIE
    MAGASIN, séparées par une ligne de coupe — comme un carnet à souche à
    papier carbone. La longueur du reçu varie selon le nombre d'articles.
+   TVA à 0% (la marchandise est déjà taxée à l'achat auprès du
+   fournisseur, elle n'est pas taxée une seconde fois à la revente).
 5. **Correction d'une erreur de saisie** : le responsable peut annuler une
    vente déjà enregistrée depuis l'onglet « Historique des ventes » (le
    stock est restitué et la recette retirée) — réservé au responsable, car
@@ -242,7 +246,8 @@ aux deux sites (le responsable).
   client, Autre) et du type de document (ticket ou facture détaillée) ;
   une seule saisie transactionnelle retire le stock, crée la recette,
   attribue le numéro de facture si nécessaire, et imprime le reçu final
-  au format imprimante ticket (deux copies, TVA à 19,25% incluse)
+  au format imprimante ticket (deux copies, code-barres, TVA à 0% —
+  déjà taxé à l'achat auprès du fournisseur)
 - Historique des ventes (responsable) : consultation du jour, tous sites
   confondus, avec annulation d'une vente en cas d'erreur de saisie (stock
   restitué, recette retirée)

@@ -4,8 +4,9 @@ Ce guide vous fait rejouer une vraie journée de vente, avec des articles
 concrets, pour vérifier que chaque poste se comporte normalement — y
 compris les dernières nouveautés : circuit paiement-à-la-caisse-d'abord
 (le client paie Franck directement, la comptabilité saisit ensuite tout
-d'un coup), reçu au format imprimante ticket en deux copies, verrouillage
-des prix, export Excel. Comptez environ 30 minutes.
+d'un coup), reçu façon ticket de caisse classique (police à chasse fixe,
+code-barres, deux copies) avec TVA à 0%, verrouillage des prix, export
+Excel. Comptez environ 30 minutes.
 
 Suivez les étapes **dans l'ordre** : chaque étape dépend souvent de la
 précédente (ex : on ne peut pas saisir dans l'historique une vente qui
@@ -105,8 +106,8 @@ puisque l'argent est déjà reçu.
 2. Onglet **Enregistrer une vente** :
    - Recherchez et ajoutez `Marteau` (quantité 1) et `Peinture blanche
      1L` (quantité 2) au panier.
-   - Vérifiez que le total TTC affiché semble cohérent (TVA 19,25%
-     incluse).
+   - Vérifiez que le total TTC affiché semble cohérent (TVA à 0% — la
+     marchandise est déjà taxée à l'achat auprès du fournisseur).
    - Choisissez le mode de paiement `Espèces` (ce qui est indiqué sur le
      facturier).
    - Cliquez **Enregistrer — Facture détaillée** (pas « Ticket », pour
@@ -118,9 +119,10 @@ puisque l'argent est déjà reçu.
      l'imprimante.
    - ✅ **À vérifier** : le document s'appelle « FACTURE N° 2026-0001 »
      (numéro déjà attribué, puisque l'argent est déjà reçu), au format
-     **étroit façon imprimante ticket** (pas une page A4/A5), et contient
-     le même contenu **deux fois à la suite** (« — COPIE CLIENT — » puis
-     « — COPIE MAGASIN — », séparées par une ligne de coupe).
+     **étroit façon imprimante ticket** (pas une page A4/A5) — police à
+     chasse fixe, séparateurs en tirets, un code-barres en bas — et
+     contient le même contenu **deux fois à la suite** (« — COPIE CLIENT
+     — » puis « — COPIE MAGASIN — », séparées par une ligne de coupe).
    - ✅ **À vérifier** : dans l'explorateur de fichiers
      (`Documents\Ventes_Quincaillerie`), le fichier doit s'appeler
      `Facture n° 2026-0001 - AAAA-MM-JJ.pdf`.
@@ -155,9 +157,9 @@ puisque l'argent est déjà reçu.
      la traçabilité anti-vol.
 5. Onglet **Rapports** :
    - ✅ **À vérifier** : le total des ventes doit correspondre à la
-     facture encore valide de l'étape 3 (Marteau ×1 + Peinture ×2 = 12 500
-     FCFA HT, soit environ 14 906 FCFA TTC) — le ticket annulé à l'étape
-     précédente ne doit **plus** compter.
+     facture encore valide de l'étape 3 (Marteau ×1 + Peinture ×2 =
+     12 500 FCFA — HT et TTC sont identiques, TVA à 0%) — le ticket
+     annulé à l'étape précédente ne doit **plus** compter.
    - Cliquez **Exporter Excel**, enregistrez le fichier.
    - ✅ **À vérifier** : ouvrez-le — deux feuilles (« Résumé » et
      « Produits les plus vendus »).

@@ -20,7 +20,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt
 
 from modules.ventes import enregistrer_vente, rechercher_articles
-from modules.facturation import calculer_totaux, generer_recu_thermique_pdf
+from modules.facturation import calculer_totaux, generer_recu_thermique_pdf, TAUX_TVA
 from modules.paiement import MODES_PAIEMENT
 from ui.dialogue_document import DialogueDocumentGenere
 
@@ -98,7 +98,7 @@ class PointDeVente(QWidget):
     def _construire_zone_totaux(self):
         vlayout = QVBoxLayout()
         self.label_sous_total = QLabel("Sous-total HT : 0 FCFA")
-        self.label_tva = QLabel("TVA (19,25%) : 0 FCFA")
+        self.label_tva = QLabel(f"TVA ({TAUX_TVA}%) : 0 FCFA")
         self.label_total = QLabel("Total payé par le client : 0 FCFA")
         self.label_total.setObjectName("totalMisEnValeur")
 
@@ -174,7 +174,7 @@ class PointDeVente(QWidget):
             sous_total, tva, total = 0, 0, 0
 
         self.label_sous_total.setText(f"Sous-total HT : {sous_total:,.0f} FCFA".replace(",", " "))
-        self.label_tva.setText(f"TVA (19,25%) : {tva:,.0f} FCFA".replace(",", " "))
+        self.label_tva.setText(f"TVA ({TAUX_TVA}%) : {tva:,.0f} FCFA".replace(",", " "))
         self.label_total.setText(f"Total payé par le client : {total:,.0f} FCFA".replace(",", " "))
 
     # ------------------------------------------------------------
@@ -219,7 +219,7 @@ class PointDeVente(QWidget):
         chemin = os.path.join(dossier_documents, nom_fichier)
 
         generer_recu_thermique_pdf(
-            chemin, resultat["type_document"], resultat["numero_facture"], resultat["lignes"],
+            chemin, resultat["id"], resultat["type_document"], resultat["numero_facture"], resultat["lignes"],
             resultat["vendeur_nom"], resultat["mode_paiement"], resultat["site_nom"],
         )
         return chemin
