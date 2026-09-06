@@ -101,6 +101,7 @@ class LoginWindow(QWidget):
         label_identifiant.setObjectName("etiquetteChamp")
 
         self.champ_identifiant = QLineEdit()
+        self.champ_identifiant.returnPressed.connect(self._sur_entree_identifiant)
 
         label_mdp = QLabel("Mot de passe")
         label_mdp.setObjectName("etiquetteChamp")
@@ -149,6 +150,15 @@ class LoginWindow(QWidget):
 
         carte.setLayout(layout)
         return carte
+
+    def _sur_entree_identifiant(self):
+        """Appui sur Entrée dans le champ Identifiant : passe au champ Mot
+        de passe s'il est vide, ou tente la connexion s'il est déjà rempli
+        (sinon Entrée ne faisait rien dans ce champ, ce qui semblait bloqué)."""
+        if self.champ_mot_de_passe.text():
+            self._tenter_connexion()
+        else:
+            self.champ_mot_de_passe.setFocus()
 
     def _basculer_visibilite_mot_de_passe(self):
         visible = self.bouton_oeil.isChecked()
