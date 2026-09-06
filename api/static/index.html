@@ -278,7 +278,7 @@
     </div>
     <div class="grille-cartes" style="margin-bottom:1rem;">
       <div class="carte-stat"><p class="titre">Total ventes TTC</p><p class="valeur" id="valeur-total-ventes">—</p></div>
-      <div class="carte-stat"><p class="titre">Marge estimée</p><p class="valeur" id="valeur-marge">—</p></div>
+      <div class="carte-stat"><p class="titre">Nombre de ventes</p><p class="valeur" id="valeur-marge">—</p></div>
     </div>
     <div class="liste" id="liste-produits"><p class="vide">Chargement…</p></div>
   </section>
@@ -449,7 +449,7 @@
     var chemin = "/api/rapports?periode=" + etat.periode + (etat.siteId ? "&site_id=" + etat.siteId : "");
     return appelApi(chemin).then(function (donnees) {
       document.getElementById("valeur-total-ventes").textContent = formaterFCFA(donnees.total_ventes_ttc);
-      document.getElementById("valeur-marge").textContent = formaterFCFA(donnees.marge_estimee);
+      document.getElementById("valeur-marge").textContent = donnees.nombre_ventes;
 
       var listeProduits = document.getElementById("liste-produits");
       listeProduits.innerHTML = "";

@@ -27,28 +27,28 @@ def _ajuster_largeurs_colonnes(feuille):
         feuille.column_dimensions[get_column_letter(colonne[0].column)].width = min(largeur + 3, 40)
 
 
-def exporter_articles_excel(chemin_fichier, articles):
-    """articles : liste de dicts (voir modules.articles.lister_articles)."""
+def exporter_articles_excel(chemin_fichier, articles, inclure_prix=True):
+    """articles : liste de dicts (voir modules.articles.lister_articles).
+    inclure_prix=False pour un export sans montants (agent stock, qui ne
+    gère que l'inventaire — voir ui/gestion_articles.py)."""
     classeur = Workbook()
     feuille = classeur.active
     feuille.title = "Stock"
-    _ecrire_entete(feuille, ["Nom", "Site", "Catégorie", "Prix de vente (FCFA)", "Stock", "Seuil d'alerte"])
+    colonnes = ["Nom", "Site"] + (["Prix de vente (FCFA)"] if inclure_prix else []) + ["Stock", "Seuil d'alerte"]
+    _ecrire_entete(feuille, colonnes)
     for article in articles:
-        feuille.append([
-            article["nom"],
-            article.get("site_nom") or "",
-            article.get("categorie") or "",
-            article["prix_vente"],
-            article["quantite_stock"],
-            article["seuil_alerte"],
-        ])
+        ligne = [article["nom"], article.get("site_nom") or ""]
+        if inclure_prix:
+            ligne.append(article["prix_vente"])
+        ligne += [article["quantite_stock"], article["seuil_alerte"]]
+        feuille.append(ligne)
     _ajuster_largeurs_colonnes(feuille)
     classeur.save(chemin_fichier)
 
 
 def exporter_rapport_excel(chemin_fichier, periode_texte, totaux, produits):
     """
-    totaux : dict avec total_ventes_ttc et marge_estimee (voir
+    totaux : dict avec total_ventes_ttc et nombre_ventes (voir
     modules.rapports.totaux_periode). produits : liste de dicts avec
     nom et quantite_vendue (voir modules.rapports.produits_plus_vendus).
     """
@@ -58,7 +58,7 @@ def exporter_rapport_excel(chemin_fichier, periode_texte, totaux, produits):
     feuille_resume.title = "Résumé"
     feuille_resume.append(["Période", periode_texte])
     feuille_resume.append(["Total ventes TTC (FCFA)", totaux["total_ventes_ttc"]])
-    feuille_resume.append(["Marge estimée (FCFA)", totaux["marge_estimee"]])
+    feuille_resume.append(["Nombre de ventes", totaux["nombre_ventes"]])
     for ligne in feuille_resume.iter_rows(min_row=1, max_row=3, min_col=1, max_col=1):
         ligne[0].font = Font(bold=True)
     feuille_resume.column_dimensions["A"].width = 28

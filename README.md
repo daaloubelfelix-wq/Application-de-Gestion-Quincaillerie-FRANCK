@@ -25,9 +25,9 @@ psql -U votre_utilisateur -d votre_base -f creation_base_donnees.sql
 ```
 
 *(Base déjà créée avec une version antérieure du projet ? Exécuter aussi les
-scripts `migration_v2_caisse.sql`, `migration_v3_mode_paiement.sql` puis
-`migration_v4_historique_prix.sql`, dans cet ordre, plutôt que de tout
-recréer.)*
+scripts `migration_v2_caisse.sql`, `migration_v3_mode_paiement.sql`,
+`migration_v4_historique_prix.sql` puis `migration_v5_rh.sql`, dans cet
+ordre, plutôt que de tout recréer.)*
 
 Puis copier `config.example.ini` vers `config.ini` (même dossier) et renseigner
 l'adresse IP réelle du poste serveur ainsi que les identifiants de connexion.

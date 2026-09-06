@@ -81,6 +81,6 @@ def rapports(periode: str = "semaine", site_id: Optional[int] = None, _utilisate
     return {
         "periode": periode,
         "total_ventes_ttc": totaux["total_ventes_ttc"],
-        "marge_estimee": totaux["marge_estimee"],
+        "nombre_ventes": totaux["nombre_ventes"],
         "produits_plus_vendus": produits,
     }

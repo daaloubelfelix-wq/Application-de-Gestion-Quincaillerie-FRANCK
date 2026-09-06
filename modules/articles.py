@@ -7,7 +7,7 @@ connecté (un agent ne peut jamais créer un article sur l'autre site).
 from database import Database
 
 
-def lister_articles(site_id=None, categorie=None, terme_recherche=None):
+def lister_articles(site_id=None, terme_recherche=None):
     """site_id=None (responsable uniquement) consolide tous les sites."""
     conditions = []
     params = []
@@ -15,10 +15,6 @@ def lister_articles(site_id=None, categorie=None, terme_recherche=None):
     if site_id is not None:
         conditions.append("a.site_id = %s")
         params.append(site_id)
-
-    if categorie and categorie != "Tous":
-        conditions.append("a.categorie = %s")
-        params.append(categorie)
 
     if terme_recherche:
         conditions.append("a.nom ILIKE %s")
@@ -37,22 +33,18 @@ def lister_articles(site_id=None, categorie=None, terme_recherche=None):
     return Database.fetch_all(requete, params)
 
 
-def lister_categories(site_id=None):
-    condition_site = "AND site_id = %s" if site_id is not None else ""
-    params = (site_id,) if site_id is not None else ()
-    resultats = Database.fetch_all(
-        f"SELECT DISTINCT categorie FROM articles WHERE categorie IS NOT NULL {condition_site} ORDER BY categorie",
-        params,
-    )
-    return [r["categorie"] for r in resultats]
-
-
 def creer_article(site_id, nom, categorie, unite, prix_achat, prix_vente,
                    quantite_initiale, seuil_alerte, fournisseur_id=None):
+    """
+    prix_vente peut valoir 0 : cas de l'agent stock, qui crée l'article
+    sans en fixer le prix (réservé au responsable) — tant qu'il vaut 0,
+    l'article n'apparaît pas dans la recherche de vente, voir
+    modules/ventes.py::rechercher_articles.
+    """
     if not nom.strip():
         raise ValueError("Le nom de l'article est obligatoire.")
-    if prix_vente <= 0:
-        raise ValueError("Le prix de vente doit être supérieur à 0.")
+    if prix_vente < 0:
+        raise ValueError("Le prix de vente ne peut pas être négatif.")
     if quantite_initiale < 0:
         raise ValueError("La quantité ne peut pas être négative.")
 
@@ -82,8 +74,8 @@ def modifier_article(article_id, nom, categorie, unite, prix_achat, prix_vente,
     """
     if not nom.strip():
         raise ValueError("Le nom de l'article est obligatoire.")
-    if prix_vente <= 0:
-        raise ValueError("Le prix de vente doit être supérieur à 0.")
+    if prix_vente < 0:
+        raise ValueError("Le prix de vente ne peut pas être négatif.")
 
     with Database.transaction() as cur:
         cur.execute("SELECT prix_achat, prix_vente FROM articles WHERE id = %s FOR UPDATE", (article_id,))
@@ -200,7 +192,3 @@ def articles_en_alerte(site_id=None):
         """,
         params,
     )
-
-
-def lister_fournisseurs():
-    return Database.fetch_all("SELECT id, nom FROM fournisseurs ORDER BY nom")

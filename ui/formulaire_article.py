@@ -2,11 +2,18 @@
 Formulaire d'ajout ou de modification d'un article.
 Réutilisé pour la création (article=None) et la modification (article fourni).
 
-Contrôle anti-fraude : sur un article déjà existant, seul le responsable
-peut changer le prix d'achat ou de vente (l'agent stock voit les prix mais
-ne peut pas les modifier) ; tout changement de prix qui a lieu est de toute
-façon enregistré dans historique_prix_articles (voir modules/articles.py),
-pour qu'un prix modifié laisse toujours une trace.
+L'agent stock (magasin) ne s'occupe que de l'inventaire : nom, unité,
+quantité, seuil d'alerte — jamais des montants ni du fournisseur, qui
+restent réservés au responsable (voir ui/gestion_fournisseurs.py). Tant
+que le responsable n'a pas fixé le prix de vente d'un nouvel article créé
+par l'agent stock, l'article n'apparaît pas dans la recherche de vente
+(voir modules/ventes.py::rechercher_articles) — pas de vente à 0 FCFA par
+erreur.
+
+Contrôle anti-fraude inchangé : sur un article déjà existant, seul le
+responsable peut changer le prix de vente ; tout changement de prix est
+enregistré dans historique_prix_articles (voir modules/articles.py), pour
+qu'un prix modifié laisse toujours une trace.
 """
 
 from PyQt6.QtWidgets import (
@@ -15,11 +22,14 @@ from PyQt6.QtWidgets import (
 )
 
 from database import Database
-from modules.articles import (
-    creer_article, modifier_article, lister_fournisseurs, derniere_modification_prix,
-)
+from modules.articles import creer_article, modifier_article, derniere_modification_prix
 
 UNITES_DISPONIBLES = ["sac", "barre", "unité", "m3", "litre", "kg", "rouleau", "bidon"]
+
+# Suggestion de seuil d'alerte = une fraction de la quantité de départ,
+# au lieu d'une valeur fixe identique pour tous les articles. Reste
+# modifiable à la main si besoin — ce n'est qu'une suggestion de départ.
+_FRACTION_SEUIL_SUGGERE = 0.2
 
 
 class FormulaireArticle(QDialog):
@@ -27,8 +37,9 @@ class FormulaireArticle(QDialog):
         super().__init__(parent)
         self.utilisateur = utilisateur
         self.article = article  # None = création, sinon dict existant
+        self.gere_les_montants = utilisateur["role"] == "responsable"
         self.setWindowTitle("Modifier l'article" if article else "Ajouter un article")
-        self.setMinimumWidth(360)
+        self.setMinimumWidth(340)
         self._construire_interface()
 
     def _construire_interface(self):
@@ -44,43 +55,44 @@ class FormulaireArticle(QDialog):
             layout.addRow("Site", self.champ_site)
 
         self.champ_nom = QLineEdit()
-        self.champ_categorie = QLineEdit()
         self.champ_unite = QComboBox()
         self.champ_unite.addItems(UNITES_DISPONIBLES)
         self.champ_unite.setEditable(True)
 
-        self.champ_prix_achat = QDoubleSpinBox()
-        self.champ_prix_achat.setMaximum(100_000_000)
-        self.champ_prix_achat.setSuffix(" FCFA")
-
-        self.champ_prix_vente = QDoubleSpinBox()
-        self.champ_prix_vente.setMaximum(100_000_000)
-        self.champ_prix_vente.setSuffix(" FCFA")
-
         self.champ_seuil_alerte = QSpinBox()
         self.champ_seuil_alerte.setMaximum(100_000)
-        self.champ_seuil_alerte.setValue(5)
-
-        self.champ_fournisseur = QComboBox()
-        self.champ_fournisseur.addItem("Aucun", None)
-        for fournisseur in lister_fournisseurs():
-            self.champ_fournisseur.addItem(fournisseur["nom"], fournisseur["id"])
 
         layout.addRow("Nom de l'article", self.champ_nom)
-        layout.addRow("Catégorie", self.champ_categorie)
         layout.addRow("Unité", self.champ_unite)
-        layout.addRow("Prix d'achat", self.champ_prix_achat)
-        layout.addRow("Prix de vente", self.champ_prix_vente)
+
+        # Le prix de vente reste réservé au responsable — l'agent stock ne
+        # gère que l'inventaire (nom, quantité, seuil), jamais les montants.
+        self.champ_prix_vente = None
+        if self.gere_les_montants:
+            self.champ_prix_vente = QDoubleSpinBox()
+            self.champ_prix_vente.setMaximum(100_000_000)
+            self.champ_prix_vente.setSuffix(" FCFA")
+            layout.addRow("Prix de vente", self.champ_prix_vente)
+
         layout.addRow("Seuil d'alerte", self.champ_seuil_alerte)
-        layout.addRow("Fournisseur", self.champ_fournisseur)
 
         if self.article is None:
+            self._seuil_modifie_a_la_main = False
+            self.champ_seuil_alerte.valueChanged.connect(self._sur_modification_seuil)
             self.champ_quantite_initiale = QSpinBox()
             self.champ_quantite_initiale.setMaximum(1_000_000)
+            self.champ_quantite_initiale.valueChanged.connect(self._suggerer_seuil)
             layout.addRow("Quantité initiale", self.champ_quantite_initiale)
+            if not self.gere_les_montants:
+                note = QLabel(
+                    "Le prix de vente sera fixé par le responsable — l'article "
+                    "n'apparaîtra en vente qu'une fois son prix défini."
+                )
+                note.setObjectName("texteAttenue")
+                note.setWordWrap(True)
+                layout.addRow(note)
         else:
             self._pre_remplir()
-            self._appliquer_restriction_prix()
             self._afficher_derniere_modification(layout)
 
         boutons = QDialogButtonBox(
@@ -94,17 +106,21 @@ class FormulaireArticle(QDialog):
 
         self.setLayout(layout)
 
-    def _appliquer_restriction_prix(self):
-        """Sur un article existant, seul le responsable change les prix."""
-        if self.utilisateur["role"] != "responsable":
-            self.champ_prix_achat.setEnabled(False)
-            self.champ_prix_vente.setEnabled(False)
-            self.champ_prix_achat.setToolTip("Seul le responsable peut modifier les prix.")
-            self.champ_prix_vente.setToolTip("Seul le responsable peut modifier les prix.")
+    def _sur_modification_seuil(self, _valeur):
+        self._seuil_modifie_a_la_main = True
+
+    def _suggerer_seuil(self, quantite):
+        """Suggestion automatique du seuil à partir de la quantité de
+        départ, tant que l'utilisateur n'a pas lui-même changé le champ."""
+        if self._seuil_modifie_a_la_main:
+            return
+        self.champ_seuil_alerte.blockSignals(True)
+        self.champ_seuil_alerte.setValue(max(1, round(quantite * _FRACTION_SEUIL_SUGGERE)))
+        self.champ_seuil_alerte.blockSignals(False)
 
     def _afficher_derniere_modification(self, layout):
         derniere = derniere_modification_prix(self.article["id"])
-        if not derniere:
+        if not derniere or not self.gere_les_montants:
             return
         texte = (
             f"Dernier changement de prix par {derniere['nom_complet']} "
@@ -118,42 +134,38 @@ class FormulaireArticle(QDialog):
 
     def _pre_remplir(self):
         self.champ_nom.setText(self.article["nom"])
-        self.champ_categorie.setText(self.article.get("categorie") or "")
         self.champ_unite.setCurrentText(self.article["unite"])
-        self.champ_prix_achat.setValue(float(self.article["prix_achat"]))
-        self.champ_prix_vente.setValue(float(self.article["prix_vente"]))
+        if self.champ_prix_vente is not None:
+            self.champ_prix_vente.setValue(float(self.article["prix_vente"]))
         self.champ_seuil_alerte.setValue(self.article["seuil_alerte"])
-        if self.article.get("fournisseur_id"):
-            index = self.champ_fournisseur.findData(self.article["fournisseur_id"])
-            if index >= 0:
-                self.champ_fournisseur.setCurrentIndex(index)
 
     def _valider(self):
+        prix_vente = self.champ_prix_vente.value() if self.champ_prix_vente is not None else None
         try:
             if self.article is None:
                 site_id = self.champ_site.currentData() if self.champ_site else self.utilisateur["site_id"]
                 creer_article(
                     site_id=site_id,
                     nom=self.champ_nom.text(),
-                    categorie=self.champ_categorie.text().strip() or None,
+                    categorie=None,
                     unite=self.champ_unite.currentText(),
-                    prix_achat=self.champ_prix_achat.value(),
-                    prix_vente=self.champ_prix_vente.value(),
+                    prix_achat=0,
+                    prix_vente=prix_vente if prix_vente is not None else 0,
                     quantite_initiale=self.champ_quantite_initiale.value(),
                     seuil_alerte=self.champ_seuil_alerte.value(),
-                    fournisseur_id=self.champ_fournisseur.currentData(),
+                    fournisseur_id=None,
                 )
             else:
                 modifier_article(
                     article_id=self.article["id"],
                     nom=self.champ_nom.text(),
-                    categorie=self.champ_categorie.text().strip() or None,
+                    categorie=self.article.get("categorie"),
                     unite=self.champ_unite.currentText(),
-                    prix_achat=self.champ_prix_achat.value(),
-                    prix_vente=self.champ_prix_vente.value(),
+                    prix_achat=float(self.article.get("prix_achat") or 0),
+                    prix_vente=prix_vente if prix_vente is not None else float(self.article["prix_vente"]),
                     seuil_alerte=self.champ_seuil_alerte.value(),
                     utilisateur_id=self.utilisateur["id"],
-                    fournisseur_id=self.champ_fournisseur.currentData(),
+                    fournisseur_id=self.article.get("fournisseur_id"),
                 )
         except ValueError as erreur:
             QMessageBox.warning(self, "Erreur de saisie", str(erreur))

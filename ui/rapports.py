@@ -55,9 +55,9 @@ class Rapports(QWidget):
 
         cartes = QHBoxLayout()
         self.carte_ventes = self._creer_carte("Total ventes")
-        self.carte_marge = self._creer_carte("Marge estimée")
+        self.carte_nombre = self._creer_carte("Nombre de ventes")
         cartes.addWidget(self.carte_ventes)
-        cartes.addWidget(self.carte_marge)
+        cartes.addWidget(self.carte_nombre)
         layout.addLayout(cartes)
 
         titre_produits = QLabel("Produits les plus vendus")
@@ -107,9 +107,7 @@ class Rapports(QWidget):
         self.carte_ventes.findChild(QLabel, "valeur").setText(
             f"{totaux['total_ventes_ttc']:,.0f} FCFA".replace(",", " ")
         )
-        self.carte_marge.findChild(QLabel, "valeur").setText(
-            f"{totaux['marge_estimee']:,.0f} FCFA".replace(",", " ")
-        )
+        self.carte_nombre.findChild(QLabel, "valeur").setText(str(totaux["nombre_ventes"]))
 
         produits = produits_plus_vendus(date_debut, date_fin, site_id)
         self.tableau.setRowCount(len(produits))

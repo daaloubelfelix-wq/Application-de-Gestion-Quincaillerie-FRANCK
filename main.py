@@ -20,6 +20,7 @@ from ui.rapports import Rapports
 from ui.gestion_fournisseurs import GestionFournisseurs
 from ui.gestion_utilisateurs import GestionUtilisateurs
 from ui.dialogue_mot_de_passe import DialogueMotDePasse
+from ui.gestion_rh import GestionRH
 
 
 class FenetrePrincipale(QMainWindow):
@@ -30,12 +31,15 @@ class FenetrePrincipale(QMainWindow):
     responsable à la caisse (note manuscrite sur le facturier papier) ; la
     comptabilité saisit ensuite tout dans l'ordinateur en une seule fois, ce
     qui imprime directement le reçu final (voir ui/point_de_vente.py).
-    - agent_stock : Tableau de bord, Articles, Fournisseurs
+    - agent_stock : Tableau de bord, Articles — gère uniquement nom/quantité/seuil,
+      pas les montants ni les fournisseurs (réservés au responsable)
     - agent_comptabilite : Tableau de bord, Comptabilité, Enregistrer une vente
-    - responsable : Tableau de bord consolidé, Articles (tous sites), Historique
-      des ventes (vérification/annulation), Rapports, Fournisseurs, Utilisateurs
-      — seul le responsable peut changer le prix d'un article existant (voir
-      ui/formulaire_article.py) ou annuler une vente déjà payée
+      — peut être rattaché au Comptoir ou au Magasin de stock selon le site
+    - responsable : Tableau de bord consolidé, Articles (tous sites, seul à voir/fixer
+      les prix), Historique des ventes (vérification/annulation), Rapports,
+      Fournisseurs, Personnel (RH), Utilisateurs — seul le responsable peut changer
+      le prix d'un article existant (voir ui/formulaire_article.py) ou annuler une
+      vente déjà payée
     """
 
     def __init__(self, utilisateur, on_deconnexion=None):
@@ -68,11 +72,11 @@ class FenetrePrincipale(QMainWindow):
             onglets.addTab(Caisse(utilisateur), "Historique des ventes")
             onglets.addTab(Rapports(utilisateur), "Rapports")
             onglets.addTab(GestionFournisseurs(utilisateur), "Fournisseurs")
+            onglets.addTab(GestionRH(utilisateur), "Personnel")
             onglets.addTab(GestionUtilisateurs(utilisateur), "Utilisateurs")
         elif utilisateur["role"] == "agent_stock":
             onglets.addTab(TableauBordAgent(utilisateur), "Tableau de bord")
             onglets.addTab(GestionArticles(utilisateur), "Articles")
-            onglets.addTab(GestionFournisseurs(utilisateur), "Fournisseurs")
         elif utilisateur["role"] == "agent_comptabilite":
             onglets.addTab(TableauBordAgent(utilisateur), "Tableau de bord")
             onglets.addTab(Comptabilite(utilisateur), "Comptabilité")

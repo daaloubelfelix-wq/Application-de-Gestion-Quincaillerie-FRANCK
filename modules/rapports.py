@@ -21,20 +21,10 @@ def totaux_periode(date_debut, date_fin, site_id=None):
     ventes = Database.fetch_one(
         f"""
         SELECT COALESCE(SUM(total_ttc), 0) AS total_ventes,
-               COALESCE(SUM(sous_total_ht), 0) AS total_ht
+               COALESCE(SUM(sous_total_ht), 0) AS total_ht,
+               COUNT(*) AS nombre_ventes
         FROM ventes
         WHERE statut = 'payee' AND date_vente::date BETWEEN %s AND %s {condition_site}
-        """,
-        params,
-    )
-
-    marge = Database.fetch_one(
-        f"""
-        SELECT COALESCE(SUM((vl.prix_unitaire - a.prix_achat) * vl.quantite), 0) AS marge
-        FROM ventes_lignes vl
-        JOIN ventes v ON v.id = vl.vente_id
-        JOIN articles a ON a.id = vl.article_id
-        WHERE v.statut = 'payee' AND v.date_vente::date BETWEEN %s AND %s {condition_site}
         """,
         params,
     )
@@ -42,7 +32,7 @@ def totaux_periode(date_debut, date_fin, site_id=None):
     return {
         "total_ventes_ttc": float(ventes["total_ventes"]),
         "total_ventes_ht": float(ventes["total_ht"]),
-        "marge_estimee": float(marge["marge"]),
+        "nombre_ventes": ventes["nombre_ventes"],
     }
 
 

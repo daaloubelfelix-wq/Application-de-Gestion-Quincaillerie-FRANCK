@@ -200,12 +200,17 @@ def annuler_vente(vente_id, utilisateur):
 
 
 def rechercher_articles(site_id, terme_recherche):
-    """Recherche d'articles pour l'enregistrement d'une vente, limitée au site de l'utilisateur."""
+    """
+    Recherche d'articles pour l'enregistrement d'une vente, limitée au
+    site de l'utilisateur. Un article créé par l'agent stock sans prix
+    de vente (prix_vente = 0, en attente que le responsable le fixe)
+    n'apparaît pas ici — pas de vente à 0 FCFA par erreur.
+    """
     return Database.fetch_all(
         """
         SELECT id, nom, prix_vente, quantite_stock
         FROM articles
-        WHERE site_id = %s AND nom ILIKE %s
+        WHERE site_id = %s AND nom ILIKE %s AND prix_vente > 0
         ORDER BY nom
         LIMIT 20
         """,

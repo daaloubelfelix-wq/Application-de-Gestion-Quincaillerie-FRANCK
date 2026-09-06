@@ -164,11 +164,61 @@ CREATE TABLE transactions (
     montant NUMERIC(12,2) NOT NULL,
     description VARCHAR(200),
     vente_id INTEGER REFERENCES ventes(id),   -- rempli si la transaction vient d'une vente
+    employe_id INTEGER,                       -- rempli si la dépense est un salaire (voir employes ci-dessous)
     date_transaction TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_transactions_site ON transactions(site_id);
 CREATE INDEX idx_transactions_date ON transactions(date_transaction);
+
+-- ------------------------------------------------------------
+-- Volet RH — réservé au responsable (voir modules/rh.py) :
+-- fiche employé, absences/congés, avances sur salaire. Le paiement du
+-- salaire lui-même reste une dépense normale (table transactions),
+-- simplement rattachée à l'employé via transactions.employe_id, pour
+-- que la comptabilité ait une vraie traçabilité au lieu d'un texte libre.
+-- ------------------------------------------------------------
+CREATE TABLE employes (
+    id SERIAL PRIMARY KEY,
+    nom_complet VARCHAR(150) NOT NULL,
+    poste VARCHAR(100),
+    telephone VARCHAR(30),
+    type_contrat VARCHAR(20) NOT NULL DEFAULT 'permanent'
+        CHECK (type_contrat IN ('permanent', 'temporaire')),
+    salaire_mensuel NUMERIC(12,2) NOT NULL DEFAULT 0,
+    site_id INTEGER REFERENCES sites(id),
+    date_embauche DATE,
+    actif BOOLEAN NOT NULL DEFAULT TRUE,
+    date_creation TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE transactions
+    ADD CONSTRAINT fk_transactions_employe FOREIGN KEY (employe_id) REFERENCES employes(id);
+
+CREATE TABLE absences_conges (
+    id SERIAL PRIMARY KEY,
+    employe_id INTEGER NOT NULL REFERENCES employes(id) ON DELETE CASCADE,
+    type VARCHAR(20) NOT NULL CHECK (type IN ('absence', 'conge')),
+    date_debut DATE NOT NULL,
+    date_fin DATE NOT NULL,
+    motif VARCHAR(200),
+    utilisateur_id INTEGER NOT NULL REFERENCES utilisateurs(id),
+    date_creation TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_absences_conges_employe ON absences_conges(employe_id);
+
+CREATE TABLE avances_salaire (
+    id SERIAL PRIMARY KEY,
+    employe_id INTEGER NOT NULL REFERENCES employes(id) ON DELETE CASCADE,
+    montant NUMERIC(12,2) NOT NULL,
+    motif VARCHAR(200),
+    remboursee BOOLEAN NOT NULL DEFAULT FALSE,
+    utilisateur_id INTEGER NOT NULL REFERENCES utilisateurs(id),
+    date_avance TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_avances_salaire_employe ON avances_salaire(employe_id);
 
 -- ============================================================
 -- Fin du script

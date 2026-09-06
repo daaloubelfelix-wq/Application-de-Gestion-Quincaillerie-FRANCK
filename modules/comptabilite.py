@@ -9,7 +9,7 @@ from datetime import date
 from database import Database
 
 
-def saisir_transaction(utilisateur, type_transaction, montant, description):
+def saisir_transaction(utilisateur, type_transaction, montant, description, employe_id=None):
     if type_transaction not in ("recette", "depense"):
         raise ValueError("Type de transaction invalide.")
     if montant <= 0:
@@ -19,10 +19,10 @@ def saisir_transaction(utilisateur, type_transaction, montant, description):
 
     Database.execute(
         """
-        INSERT INTO transactions (site_id, utilisateur_id, type, montant, description)
-        VALUES (%s, %s, %s, %s, %s)
+        INSERT INTO transactions (site_id, utilisateur_id, type, montant, description, employe_id)
+        VALUES (%s, %s, %s, %s, %s, %s)
         """,
-        (utilisateur["site_id"], utilisateur["id"], type_transaction, montant, description.strip()),
+        (utilisateur["site_id"], utilisateur["id"], type_transaction, montant, description.strip(), employe_id),
     )
 
 
@@ -62,9 +62,10 @@ def historique_transactions(site_id, limite=30):
     return Database.fetch_all(
         """
         SELECT t.id, t.type, t.montant, t.description, t.date_transaction,
-               u.nom_complet AS auteur
+               u.nom_complet AS auteur, e.nom_complet AS employe_nom
         FROM transactions t
         JOIN utilisateurs u ON u.id = t.utilisateur_id
+        LEFT JOIN employes e ON e.id = t.employe_id
         WHERE t.site_id = %s
         ORDER BY t.date_transaction DESC
         LIMIT %s
