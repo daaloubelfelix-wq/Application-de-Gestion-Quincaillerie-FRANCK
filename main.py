@@ -7,7 +7,7 @@ adapté au rôle de la personne connectée.
 import sys
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QTabWidget, QWidget, QVBoxLayout, QHBoxLayout,
-    QPushButton, QMessageBox,
+    QPushButton,
 )
 
 import os
@@ -24,6 +24,7 @@ from ui.gestion_fournisseurs import GestionFournisseurs
 from ui.gestion_utilisateurs import GestionUtilisateurs
 from ui.dialogue_parametres import DialogueParametres
 from ui.gestion_rh import GestionRH
+from ui.confirmation import confirmer
 from modules.auth import marquer_mot_de_passe_traite
 
 
@@ -112,13 +113,12 @@ def demarrer_application_principale(utilisateur):
     fenetre_connexion.close()
 
     if utilisateur.get("doit_changer_mot_de_passe"):
-        reponse = QMessageBox.question(
-            fenetre_principale,
-            "Première connexion",
+        souhaite_changer = confirmer(
+            fenetre_principale, "Première connexion",
             "Souhaitez-vous changer votre mot de passe maintenant ?",
         )
         marquer_mot_de_passe_traite(utilisateur["id"])
-        if reponse == QMessageBox.StandardButton.Yes:
+        if souhaite_changer:
             fenetre_principale._ouvrir_parametres()
 
 
