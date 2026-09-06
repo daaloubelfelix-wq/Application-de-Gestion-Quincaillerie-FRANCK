@@ -1,6 +1,7 @@
 """
-Illustration de fond pour l'écran d'accueil : outils de quincaillerie
-dessinés directement (QPainter), pour ne dépendre d'aucune image externe.
+Illustration de fond pour l'écran d'accueil : un mur à outils façon
+quincaillerie (pegboard perforé, rail, outils accrochés), dessiné
+directement (QPainter), pour ne dépendre d'aucune image externe.
 Remplacer par de vraies photos de la boutique est possible plus tard —
 voir README.
 """
@@ -34,16 +35,61 @@ class IllustrationOutils(QWidget):
         degrade.setColorAt(1.0, QColor("#22303F"))
         peintre.fillRect(self.rect(), degrade)
 
-        self._dessiner_marteau(peintre, largeur * 0.20, hauteur * 0.30, largeur * 0.16)
-        self._dessiner_cle(peintre, largeur * 0.68, hauteur * 0.22, largeur * 0.15)
-        self._dessiner_pot_peinture(peintre, largeur * 0.62, hauteur * 0.62, largeur * 0.14)
-        self._dessiner_vis(peintre, largeur * 0.22, hauteur * 0.68, largeur * 0.05)
-        self._dessiner_vis(peintre, largeur * 0.32, hauteur * 0.74, largeur * 0.035)
-        self._dessiner_vis(peintre, largeur * 0.14, hauteur * 0.55, largeur * 0.03)
+        self._dessiner_texture_pegboard(peintre, largeur, hauteur)
+
+        y_rail = hauteur * 0.30
+        self._dessiner_rail(peintre, largeur, y_rail)
+
+        taille_outil = min(largeur, hauteur) * 0.20
+        positions = [0.14, 0.32, 0.5, 0.68, 0.86]
+        dessinateurs = [
+            self._dessiner_marteau,
+            self._dessiner_cle,
+            self._dessiner_tournevis,
+            self._dessiner_metre_ruban,
+            self._dessiner_pot_peinture,
+        ]
+        for fraction_x, dessiner in zip(positions, dessinateurs):
+            x = largeur * fraction_x
+            self._dessiner_crochet(peintre, x, y_rail)
+            dessiner(peintre, x, y_rail + 16, taille_outil)
 
         if self.afficher_titre:
             self._dessiner_titre(peintre, largeur, hauteur)
         peintre.end()
+
+    def _dessiner_texture_pegboard(self, peintre, largeur, hauteur):
+        """Petits trous perforés en grille, comme un panneau à outils."""
+        peintre.save()
+        peintre.setPen(Qt.PenStyle.NoPen)
+        peintre.setBrush(QColor(255, 255, 255, 16))
+        pas = max(22, int(largeur * 0.055))
+        y = pas
+        while y < hauteur:
+            x = pas
+            while x < largeur:
+                peintre.drawEllipse(QPointF(x, y), 1.6, 1.6)
+                x += pas
+            y += pas
+        peintre.restore()
+
+    def _dessiner_rail(self, peintre, largeur, y_rail):
+        """Rail horizontal sur lequel les outils sont accrochés."""
+        peintre.save()
+        peintre.setPen(Qt.PenStyle.NoPen)
+        peintre.setBrush(QColor("#18222C"))
+        rail = QRectF(largeur * 0.06, y_rail - 5, largeur * 0.88, 9)
+        peintre.drawRoundedRect(rail, 3, 3)
+        peintre.setPen(QPen(QColor(255, 255, 255, 45), 1))
+        peintre.drawLine(QPointF(largeur * 0.06, y_rail - 5), QPointF(largeur * 0.94, y_rail - 5))
+        peintre.restore()
+
+    def _dessiner_crochet(self, peintre, x, y_rail):
+        """Petit crochet reliant le rail à l'outil suspendu."""
+        peintre.save()
+        peintre.setPen(QPen(QColor("#8FA0AF"), 2))
+        peintre.drawLine(QPointF(x, y_rail + 4), QPointF(x, y_rail + 16))
+        peintre.restore()
 
     def _dessiner_titre(self, peintre, largeur, hauteur):
         zone_titre = QRectF(largeur * 0.08, hauteur * 0.74, largeur * 0.84, hauteur * 0.16)
@@ -68,78 +114,87 @@ class IllustrationOutils(QWidget):
     def _dessiner_marteau(self, peintre, x, y, taille):
         peintre.save()
         peintre.translate(x, y)
-        peintre.rotate(-35)
-
         peintre.setPen(Qt.PenStyle.NoPen)
-        peintre.setBrush(QColor("#B8710F"))
-        manche = QRectF(-taille * 0.06, 0, taille * 0.12, taille * 0.9)
-        peintre.drawRoundedRect(manche, taille * 0.03, taille * 0.03)
 
         peintre.setBrush(QColor("#EAE5D7"))
-        tete = QRectF(-taille * 0.32, -taille * 0.16, taille * 0.64, taille * 0.28)
+        tete = QRectF(-taille * 0.32, 0, taille * 0.64, taille * 0.24)
         peintre.drawRoundedRect(tete, taille * 0.05, taille * 0.05)
+
+        peintre.setBrush(QColor("#B8710F"))
+        manche = QRectF(-taille * 0.06, taille * 0.2, taille * 0.12, taille * 0.62)
+        peintre.drawRoundedRect(manche, taille * 0.03, taille * 0.03)
         peintre.restore()
 
     def _dessiner_cle(self, peintre, x, y, taille):
-        """Clé à anneau : manche + anneau ouvert à une extrémité."""
+        """Clé à anneau : anneau en haut, manche vers le bas."""
         peintre.save()
         peintre.translate(x, y)
-        peintre.rotate(-15)
-
         peintre.setPen(Qt.PenStyle.NoPen)
         peintre.setBrush(QColor("#EAE5D7"))
 
-        manche = QRectF(-taille * 0.09, -taille * 0.05, taille * 0.75, taille * 0.10)
-        peintre.drawRoundedRect(manche, taille * 0.05, taille * 0.05)
-
-        centre_anneau = QPointF(-taille * 0.12, 0)
-        peintre.drawEllipse(centre_anneau, taille * 0.30, taille * 0.30)
+        centre_anneau = QPointF(0, taille * 0.18)
+        peintre.drawEllipse(centre_anneau, taille * 0.24, taille * 0.24)
         peintre.setBrush(QColor("#22303F"))
-        peintre.drawEllipse(centre_anneau, taille * 0.15, taille * 0.15)
+        peintre.drawEllipse(centre_anneau, taille * 0.12, taille * 0.12)
+
+        peintre.setBrush(QColor("#EAE5D7"))
+        manche = QRectF(-taille * 0.07, taille * 0.36, taille * 0.14, taille * 0.48)
+        peintre.drawRoundedRect(manche, taille * 0.04, taille * 0.04)
+        peintre.restore()
+
+    def _dessiner_tournevis(self, peintre, x, y, taille):
+        """Manche en haut, tige plate vers le bas."""
+        peintre.save()
+        peintre.translate(x, y)
+        peintre.setPen(Qt.PenStyle.NoPen)
+
+        peintre.setBrush(QColor("#B8710F"))
+        manche = QRectF(-taille * 0.15, 0, taille * 0.3, taille * 0.32)
+        peintre.drawRoundedRect(manche, taille * 0.08, taille * 0.08)
+
+        peintre.setBrush(QColor("#C7D3DD"))
+        tige = QRectF(-taille * 0.045, taille * 0.28, taille * 0.09, taille * 0.5)
+        peintre.drawRoundedRect(tige, taille * 0.02, taille * 0.02)
+        peintre.restore()
+
+    def _dessiner_metre_ruban(self, peintre, x, y, taille):
+        """Mètre ruban : boîtier rond avec une languette."""
+        peintre.save()
+        peintre.translate(x, y)
+        peintre.setPen(Qt.PenStyle.NoPen)
+
+        centre = QPointF(0, taille * 0.24)
+        peintre.setBrush(QColor("#EAE5D7"))
+        peintre.drawEllipse(centre, taille * 0.26, taille * 0.26)
+        peintre.setBrush(QColor("#B8710F"))
+        peintre.drawEllipse(centre, taille * 0.1, taille * 0.1)
+
+        peintre.setBrush(QColor("#C7D3DD"))
+        languette = QRectF(taille * 0.16, taille * 0.16, taille * 0.18, taille * 0.1)
+        peintre.drawRoundedRect(languette, taille * 0.02, taille * 0.02)
         peintre.restore()
 
     def _dessiner_pot_peinture(self, peintre, x, y, taille):
         peintre.save()
-        peintre.translate(x, y)
+        peintre.translate(x, y + taille * 0.5)
 
         peintre.setPen(Qt.PenStyle.NoPen)
         peintre.setBrush(QColor("#EAE5D7"))
         corps = QPolygonF([
-            QPointF(-taille * 0.4, -taille * 0.35),
-            QPointF(taille * 0.4, -taille * 0.35),
-            QPointF(taille * 0.32, taille * 0.4),
-            QPointF(-taille * 0.32, taille * 0.4),
+            QPointF(-taille * 0.36, -taille * 0.28),
+            QPointF(taille * 0.36, -taille * 0.28),
+            QPointF(taille * 0.3, taille * 0.34),
+            QPointF(-taille * 0.3, taille * 0.34),
         ])
         peintre.drawPolygon(corps)
 
         peintre.setBrush(QColor("#B8710F"))
-        couvercle = QRectF(-taille * 0.46, -taille * 0.48, taille * 0.92, taille * 0.16)
+        couvercle = QRectF(-taille * 0.42, -taille * 0.4, taille * 0.84, taille * 0.14)
         peintre.drawRoundedRect(couvercle, taille * 0.04, taille * 0.04)
 
-        peintre.setPen(QPen(QColor("#3D5066"), taille * 0.05))
+        peintre.setPen(QPen(QColor("#C7D3DD"), taille * 0.05))
         peintre.drawArc(
-            QRectF(-taille * 0.3, -taille * 0.75, taille * 0.6, taille * 0.6),
+            QRectF(-taille * 0.26, -taille * 0.62, taille * 0.52, taille * 0.5),
             20 * 16, 140 * 16,
         )
-        peintre.restore()
-
-    def _dessiner_vis(self, peintre, x, y, taille):
-        """Tête de boulon hexagonale."""
-        peintre.save()
-        peintre.translate(x, y)
-        peintre.setPen(Qt.PenStyle.NoPen)
-        peintre.setBrush(QColor(234, 229, 215, 190))
-
-        hexagone = QPolygonF([
-            QPointF(taille * 1.0, 0),
-            QPointF(taille * 0.5, taille * 0.87),
-            QPointF(-taille * 0.5, taille * 0.87),
-            QPointF(-taille * 1.0, 0),
-            QPointF(-taille * 0.5, -taille * 0.87),
-            QPointF(taille * 0.5, -taille * 0.87),
-        ])
-        peintre.drawPolygon(hexagone)
-
-        peintre.setBrush(QColor("#22303F"))
-        peintre.drawEllipse(QPointF(0, 0), taille * 0.32, taille * 0.32)
         peintre.restore()
