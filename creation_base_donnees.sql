@@ -243,6 +243,30 @@ CREATE TABLE avances_salaire (
 
 CREATE INDEX idx_avances_salaire_employe ON avances_salaire(employe_id);
 
+-- ------------------------------------------------------------
+-- Table : comptages_stock
+-- Inventaire physique (matin/soir), article par article, fait par
+-- l'agent stock — jamais par la comptabilité, qui n'a pas à voir les
+-- quantités en stock. quantite_attendue est une copie figée de
+-- articles.quantite_stock au moment du comptage (pas une valeur
+-- recalculée après coup) : ça permet de savoir exactement ce qui était
+-- attendu ce jour-là, même si le stock a bougé depuis. ecart < 0 =
+-- marchandise manquante (voir modules/inventaire.py).
+-- ------------------------------------------------------------
+CREATE TABLE comptages_stock (
+    id SERIAL PRIMARY KEY,
+    article_id INTEGER NOT NULL REFERENCES articles(id) ON DELETE CASCADE,
+    utilisateur_id INTEGER NOT NULL REFERENCES utilisateurs(id),
+    moment VARCHAR(10) NOT NULL CHECK (moment IN ('matin', 'soir')),
+    quantite_attendue INTEGER NOT NULL,
+    quantite_comptee INTEGER NOT NULL,
+    ecart INTEGER NOT NULL,
+    date_comptage TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_comptages_stock_article ON comptages_stock(article_id);
+CREATE INDEX idx_comptages_stock_date ON comptages_stock(date_comptage);
+
 -- ============================================================
 -- Fin du script
 -- ============================================================

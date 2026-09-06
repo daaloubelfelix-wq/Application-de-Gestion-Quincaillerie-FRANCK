@@ -24,6 +24,7 @@ from ui.gestion_fournisseurs import GestionFournisseurs
 from ui.gestion_utilisateurs import GestionUtilisateurs
 from ui.dialogue_parametres import DialogueParametres
 from ui.gestion_rh import GestionRH
+from ui.historique_comptages import HistoriqueComptages
 from ui.confirmation import confirmer
 from modules.auth import marquer_mot_de_passe_traite
 
@@ -36,13 +37,17 @@ class FenetrePrincipale(QMainWindow):
     responsable à la caisse (note manuscrite sur le facturier papier) ; la
     comptabilité saisit ensuite tout dans l'ordinateur en une seule fois, ce
     qui imprime directement le reçu final (voir ui/point_de_vente.py).
-    - agent_stock : Tableau de bord, Articles — gère uniquement nom/quantité/seuil,
-      pas les montants ni les fournisseurs (réservés au responsable)
+    - agent_stock : Tableau de bord, Articles — gère uniquement nom/quantité,
+      pas les montants ni les fournisseurs (réservés au responsable) ; fait
+      aussi le comptage d'inventaire matin/soir (bouton du tableau de bord,
+      voir ui/comptage_stock.py) — peut exister au Magasin comme au Comptoir
     - agent_comptabilite : Tableau de bord, Comptabilité, Enregistrer une vente
-      — peut être rattaché au Comptoir ou au Magasin de stock selon le site
+      — peut être rattaché au Comptoir ou au Magasin de stock selon le site ;
+      ne voit jamais les quantités en stock, ce n'est pas son rôle
     - responsable : Tableau de bord consolidé, Articles (tous sites, seul à voir/fixer
       les prix), Historique des ventes (vérification/annulation), Rapports,
-      Fournisseurs, Personnel (RH), Utilisateurs — seul le responsable peut changer
+      Inventaire (historique des comptages, pour les réunions), Fournisseurs,
+      Personnel (RH), Utilisateurs — seul le responsable peut changer
       le prix d'un article existant (voir ui/formulaire_article.py) ou annuler une
       vente déjà payée
     """
@@ -77,6 +82,7 @@ class FenetrePrincipale(QMainWindow):
             onglets.addTab(GestionArticles(utilisateur), "Articles")
             onglets.addTab(Caisse(utilisateur), "Historique des ventes")
             index_rapports = onglets.addTab(Rapports(utilisateur), "Rapports")
+            onglets.addTab(HistoriqueComptages(utilisateur), "Inventaire")
             onglets.addTab(GestionFournisseurs(utilisateur), "Fournisseurs")
             onglets.addTab(GestionRH(utilisateur), "Personnel")
             index_utilisateurs = onglets.addTab(GestionUtilisateurs(utilisateur), "Utilisateurs")

@@ -13,6 +13,7 @@ from PyQt6.QtCore import Qt
 
 from database import Database
 from modules.comptabilite import totaux_du_jour
+from modules.inventaire import statut_inventaire_jour
 
 
 class TableauBordAgent(QWidget):
@@ -80,6 +81,11 @@ class TableauBordAgent(QWidget):
         cartes.addWidget(self._carte_stat("Seuils atteints", self._compter_alertes(), alerte=True))
         self.zone_contenu.addLayout(cartes)
 
+        titre_inventaire = QLabel("Comptage d'inventaire du jour")
+        titre_inventaire.setStyleSheet("font-size: 13px; font-weight: bold;")
+        self.zone_contenu.addWidget(titre_inventaire)
+        self.zone_contenu.addWidget(self._construire_statut_inventaire())
+
         titre_alertes = QLabel("Alertes stock faible")
         titre_alertes.setStyleSheet("font-size: 13px; font-weight: bold;")
         self.zone_contenu.addWidget(titre_alertes)
@@ -91,9 +97,46 @@ class TableauBordAgent(QWidget):
         bouton_ajout.clicked.connect(self._ouvrir_formulaire_ajout_article)
         bouton_mouvement = QPushButton("Mouvement stock")
         bouton_mouvement.clicked.connect(self._ouvrir_formulaire_mouvement_stock)
+        bouton_comptage = QPushButton("Faire le comptage")
+        bouton_comptage.clicked.connect(self._ouvrir_comptage)
         actions.addWidget(bouton_ajout)
         actions.addWidget(bouton_mouvement)
+        actions.addWidget(bouton_comptage)
         self.zone_contenu.addLayout(actions)
+
+    def _construire_statut_inventaire(self):
+        statut = statut_inventaire_jour(self.utilisateur["site_id"])
+        cadre = QFrame()
+
+        if statut["nombre_comptages"] == 0:
+            cadre.setStyleSheet("background-color: #E7DFC9; border-radius: 8px; padding: 12px;")
+            texte = "Pas encore comptabilisé aujourd'hui — pensez au comptage du matin et du soir."
+            couleur = "#6B6357"
+        elif statut["en_ordre"]:
+            cadre.setStyleSheet("background-color: #DDE8DD; border-radius: 8px; padding: 12px;")
+            texte = "✔ Tout est en ordre — aucun écart détecté sur le comptage du jour."
+            couleur = "#3F6B46"
+        else:
+            cadre.setStyleSheet("background-color: #F0DDD0; border-radius: 8px; padding: 12px;")
+            detail = ", ".join(
+                f"{e['nom']} ({'manque ' + str(abs(e['ecart'])) if e['ecart'] < 0 else '+' + str(e['ecart'])})"
+                for e in statut["ecarts"]
+            )
+            texte = f"✘ Écart détecté : {detail}"
+            couleur = "#9C3D1F"
+
+        vlayout = QVBoxLayout()
+        label = QLabel(texte)
+        label.setWordWrap(True)
+        label.setStyleSheet(f"color: {couleur}; font-weight: 600;")
+        vlayout.addWidget(label)
+        cadre.setLayout(vlayout)
+        return cadre
+
+    def _ouvrir_comptage(self):
+        from ui.comptage_stock import ComptageStock
+        ComptageStock(self.utilisateur, parent=self).exec()
+        self._rafraichir_stock()
 
     def _ouvrir_formulaire_ajout_article(self):
         from ui.formulaire_article import FormulaireArticle
