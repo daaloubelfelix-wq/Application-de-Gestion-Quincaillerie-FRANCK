@@ -5,7 +5,7 @@ adapté au rôle de la personne connectée.
 """
 
 import sys
-from PyQt6.QtWidgets import QApplication, QMainWindow, QTabWidget
+from PyQt6.QtWidgets import QApplication, QMainWindow, QTabWidget, QWidget, QVBoxLayout, QHBoxLayout, QPushButton
 
 import os
 
@@ -37,14 +37,23 @@ class FenetrePrincipale(QMainWindow):
       ui/formulaire_article.py) ou annuler une vente déjà payée
     """
 
-    def __init__(self, utilisateur):
+    def __init__(self, utilisateur, on_deconnexion=None):
         super().__init__()
         self.utilisateur = utilisateur
+        self.on_deconnexion = on_deconnexion
         self.setWindowTitle(
             f"Ets Quincaillerie Franck — {utilisateur['nom_complet']} "
             f"({utilisateur['role']})"
         )
         self.setMinimumSize(960, 640)
+
+        barre_haut = QHBoxLayout()
+        barre_haut.setContentsMargins(12, 8, 12, 0)
+        barre_haut.addStretch()
+        bouton_deconnexion = QPushButton("Se déconnecter")
+        bouton_deconnexion.setProperty("secondaire", True)
+        bouton_deconnexion.clicked.connect(self._se_deconnecter)
+        barre_haut.addWidget(bouton_deconnexion)
 
         onglets = QTabWidget()
 
@@ -64,14 +73,33 @@ class FenetrePrincipale(QMainWindow):
             onglets.addTab(Comptabilite(utilisateur), "Comptabilité")
             onglets.addTab(PointDeVente(utilisateur), "Enregistrer une vente")
 
-        self.setCentralWidget(onglets)
+        conteneur = QWidget()
+        layout_conteneur = QVBoxLayout()
+        layout_conteneur.setContentsMargins(0, 0, 0, 0)
+        layout_conteneur.setSpacing(0)
+        layout_conteneur.addLayout(barre_haut)
+        layout_conteneur.addWidget(onglets)
+        conteneur.setLayout(layout_conteneur)
+
+        self.setCentralWidget(conteneur)
+
+    def _se_deconnecter(self):
+        if self.on_deconnexion:
+            self.on_deconnexion()
+        self.close()
 
 
 def demarrer_application_principale(utilisateur):
     global fenetre_principale
-    fenetre_principale = FenetrePrincipale(utilisateur)
+    fenetre_principale = FenetrePrincipale(utilisateur, on_deconnexion=revenir_a_connexion)
     fenetre_principale.show()
     fenetre_connexion.close()
+
+
+def revenir_a_connexion():
+    global fenetre_connexion
+    fenetre_connexion = LoginWindow(on_login_success=demarrer_application_principale)
+    fenetre_connexion.show()
 
 
 def _chemin_ressource(chemin_relatif):
