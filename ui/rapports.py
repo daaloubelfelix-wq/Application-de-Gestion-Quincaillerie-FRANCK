@@ -6,12 +6,14 @@ Filtrable par période (semaine/mois) et par site.
 from datetime import date, timedelta
 
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QComboBox,
-    QFrame, QTableWidget, QTableWidgetItem, QHeaderView
+    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QComboBox, QPushButton,
+    QFrame, QTableWidget, QTableWidgetItem, QHeaderView, QFileDialog,
+    QMessageBox
 )
 
 from database import Database
 from modules.rapports import totaux_periode, produits_plus_vendus
+from modules.export_excel import exporter_rapport_excel
 
 
 class Rapports(QWidget):
@@ -40,8 +42,13 @@ class Rapports(QWidget):
             self.selecteur_site.addItem(site["nom"], site["id"])
         self.selecteur_site.currentIndexChanged.connect(self._rafraichir)
 
+        bouton_exporter = QPushButton("Exporter Excel")
+        bouton_exporter.setProperty("secondaire", True)
+        bouton_exporter.clicked.connect(self._exporter_excel)
+
         entete.addWidget(titre)
         entete.addStretch()
+        entete.addWidget(bouton_exporter)
         entete.addWidget(self.selecteur_site)
         entete.addWidget(self.selecteur_periode)
         layout.addLayout(entete)
@@ -109,3 +116,28 @@ class Rapports(QWidget):
         for ligne, produit in enumerate(produits):
             self.tableau.setItem(ligne, 0, QTableWidgetItem(produit["nom"]))
             self.tableau.setItem(ligne, 1, QTableWidgetItem(str(produit["quantite_vendue"])))
+
+    def _exporter_excel(self):
+        date_debut, date_fin = self._plage_dates()
+        site_id = self.selecteur_site.currentData()
+
+        totaux = totaux_periode(date_debut, date_fin, site_id)
+        produits = produits_plus_vendus(date_debut, date_fin, site_id)
+        periode_texte = (
+            f"{self.selecteur_periode.currentText()} "
+            f"({date_debut.strftime('%d/%m/%Y')} - {date_fin.strftime('%d/%m/%Y')})"
+        )
+
+        nom_suggere = f"Rapport {date_debut.strftime('%Y-%m-%d')} - {date_fin.strftime('%Y-%m-%d')}.xlsx"
+        chemin, _ = QFileDialog.getSaveFileName(
+            self, "Exporter le rapport en Excel", nom_suggere, "Classeur Excel (*.xlsx)"
+        )
+        if not chemin:
+            return
+
+        try:
+            exporter_rapport_excel(chemin, periode_texte, totaux, produits)
+        except OSError as erreur:
+            QMessageBox.warning(self, "Export impossible", str(erreur))
+            return
+        QMessageBox.information(self, "Export réussi", f"Le fichier a été enregistré :\n{chemin}")

@@ -1,13 +1,15 @@
 """
-Dialogue affiché après la génération d'un ticket ou d'une facture PDF :
-propose de l'ouvrir ou de l'imprimer directement.
+Dialogue affiché après la génération d'un ticket ou d'une facture PDF.
+Propose un seul bouton d'action qui ouvre le document dans le lecteur PDF
+par défaut : l'utilisateur voit l'aperçu et lance l'impression lui-même
+depuis ce lecteur — pas d'impression silencieuse sans visualisation.
 """
 
 from PyQt6.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QMessageBox
+    QDialog, QVBoxLayout, QLabel, QPushButton, QMessageBox
 )
 
-from ui.utilitaires_fichiers import ouvrir_fichier, imprimer_fichier
+from ui.utilitaires_fichiers import ouvrir_fichier
 
 
 class DialogueDocumentGenere(QDialog):
@@ -27,17 +29,14 @@ class DialogueDocumentGenere(QDialog):
         label_message.setWordWrap(True)
         layout.addWidget(label_message)
 
-        actions = QHBoxLayout()
-        bouton_ouvrir = QPushButton("Ouvrir le PDF")
-        bouton_ouvrir.setProperty("secondaire", True)
-        bouton_ouvrir.clicked.connect(self._ouvrir)
+        label_aide = QLabel("Vérifiez l'aperçu dans le lecteur PDF avant de lancer l'impression.")
+        label_aide.setObjectName("texteAttenue")
+        label_aide.setWordWrap(True)
+        layout.addWidget(label_aide)
 
-        bouton_imprimer = QPushButton("Imprimer")
-        bouton_imprimer.clicked.connect(self._imprimer)
-
-        actions.addWidget(bouton_ouvrir)
-        actions.addWidget(bouton_imprimer)
-        layout.addLayout(actions)
+        bouton_apercu = QPushButton("Aperçu et impression")
+        bouton_apercu.clicked.connect(self._ouvrir)
+        layout.addWidget(bouton_apercu)
 
         bouton_fermer = QPushButton("Fermer")
         bouton_fermer.setProperty("secondaire", True)
@@ -51,9 +50,3 @@ class DialogueDocumentGenere(QDialog):
             ouvrir_fichier(self.chemin_pdf)
         except OSError as erreur:
             QMessageBox.warning(self, "Impossible d'ouvrir le fichier", str(erreur))
-
-    def _imprimer(self):
-        try:
-            imprimer_fichier(self.chemin_pdf)
-        except OSError as erreur:
-            QMessageBox.warning(self, "Impossible d'imprimer", str(erreur))

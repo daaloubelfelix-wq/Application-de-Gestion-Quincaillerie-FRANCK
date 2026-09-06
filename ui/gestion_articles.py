@@ -4,14 +4,18 @@ Liste filtrable par catégorie/recherche, alertes visuelles de stock faible,
 ajout et modification via formulaire.
 """
 
+from datetime import datetime
+
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton, QLabel,
-    QTableWidget, QTableWidgetItem, QComboBox, QHeaderView
+    QTableWidget, QTableWidgetItem, QComboBox, QHeaderView, QFileDialog,
+    QMessageBox
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor
 
 from modules.articles import lister_articles, lister_categories
+from modules.export_excel import exporter_articles_excel
 from ui.formulaire_article import FormulaireArticle
 
 
@@ -30,10 +34,15 @@ class GestionArticles(QWidget):
         entete = QHBoxLayout()
         titre = QLabel(f"Articles · {self.utilisateur['site_nom']}")
         titre.setStyleSheet("font-size: 15px; font-weight: bold;")
+        bouton_exporter = QPushButton("Exporter Excel")
+        bouton_exporter.setProperty("secondaire", True)
+        bouton_exporter.clicked.connect(self._exporter_excel)
+
         bouton_ajouter = QPushButton("+ Ajouter un article")
         bouton_ajouter.clicked.connect(self._ouvrir_formulaire_ajout)
         entete.addWidget(titre)
         entete.addStretch()
+        entete.addWidget(bouton_exporter)
         entete.addWidget(bouton_ajouter)
         layout.addLayout(entete)
 
@@ -102,6 +111,26 @@ class GestionArticles(QWidget):
         if dialogue.exec():
             self._rafraichir_categories()
             self._rafraichir_liste()
+
+    def _exporter_excel(self):
+        articles = lister_articles(
+            site_id=self.utilisateur["site_id"],
+            categorie=self.selecteur_categorie.currentText(),
+            terme_recherche=self.champ_recherche.text().strip() or None,
+        )
+        nom_suggere = f"Stock {self.utilisateur['site_nom']} - {datetime.now().strftime('%Y-%m-%d')}.xlsx"
+        chemin, _ = QFileDialog.getSaveFileName(
+            self, "Exporter le stock en Excel", nom_suggere, "Classeur Excel (*.xlsx)"
+        )
+        if not chemin:
+            return
+
+        try:
+            exporter_articles_excel(chemin, articles)
+        except OSError as erreur:
+            QMessageBox.warning(self, "Export impossible", str(erreur))
+            return
+        QMessageBox.information(self, "Export réussi", f"Le fichier a été enregistré :\n{chemin}")
 
     def _rafraichir_categories(self):
         categorie_actuelle = self.selecteur_categorie.currentText()

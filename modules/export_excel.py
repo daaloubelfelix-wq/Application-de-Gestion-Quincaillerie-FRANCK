@@ -1,0 +1,72 @@
+"""
+Export de données vers des fichiers Excel (.xlsx) — pour partager le
+stock avec un fournisseur ou transmettre un rapport de ventes à un
+comptable, en dehors de l'application.
+"""
+
+from openpyxl import Workbook
+from openpyxl.styles import Alignment, Font, PatternFill
+from openpyxl.utils import get_column_letter
+
+_COULEUR_ENTETE = "152C4D"
+
+
+def _ecrire_entete(feuille, colonnes):
+    feuille.append(colonnes)
+    for index in range(1, len(colonnes) + 1):
+        cellule = feuille.cell(row=1, column=index)
+        cellule.font = Font(bold=True, color="FFFFFF")
+        cellule.fill = PatternFill("solid", fgColor=_COULEUR_ENTETE)
+        cellule.alignment = Alignment(horizontal="center")
+
+
+def _ajuster_largeurs_colonnes(feuille):
+    for colonne in feuille.columns:
+        valeurs = [str(cellule.value) for cellule in colonne if cellule.value is not None]
+        largeur = max((len(v) for v in valeurs), default=8)
+        feuille.column_dimensions[get_column_letter(colonne[0].column)].width = min(largeur + 3, 40)
+
+
+def exporter_articles_excel(chemin_fichier, articles):
+    """articles : liste de dicts (voir modules.articles.lister_articles)."""
+    classeur = Workbook()
+    feuille = classeur.active
+    feuille.title = "Stock"
+    _ecrire_entete(feuille, ["Nom", "Catégorie", "Prix de vente (FCFA)", "Stock", "Seuil d'alerte"])
+    for article in articles:
+        feuille.append([
+            article["nom"],
+            article.get("categorie") or "",
+            article["prix_vente"],
+            article["quantite_stock"],
+            article["seuil_alerte"],
+        ])
+    _ajuster_largeurs_colonnes(feuille)
+    classeur.save(chemin_fichier)
+
+
+def exporter_rapport_excel(chemin_fichier, periode_texte, totaux, produits):
+    """
+    totaux : dict avec total_ventes_ttc et marge_estimee (voir
+    modules.rapports.totaux_periode). produits : liste de dicts avec
+    nom et quantite_vendue (voir modules.rapports.produits_plus_vendus).
+    """
+    classeur = Workbook()
+
+    feuille_resume = classeur.active
+    feuille_resume.title = "Résumé"
+    feuille_resume.append(["Période", periode_texte])
+    feuille_resume.append(["Total ventes TTC (FCFA)", totaux["total_ventes_ttc"]])
+    feuille_resume.append(["Marge estimée (FCFA)", totaux["marge_estimee"]])
+    for ligne in feuille_resume.iter_rows(min_row=1, max_row=3, min_col=1, max_col=1):
+        ligne[0].font = Font(bold=True)
+    feuille_resume.column_dimensions["A"].width = 28
+    feuille_resume.column_dimensions["B"].width = 22
+
+    feuille_produits = classeur.create_sheet("Produits les plus vendus")
+    _ecrire_entete(feuille_produits, ["Article", "Quantité vendue"])
+    for produit in produits:
+        feuille_produits.append([produit["nom"], produit["quantite_vendue"]])
+    _ajuster_largeurs_colonnes(feuille_produits)
+
+    classeur.save(chemin_fichier)

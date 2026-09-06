@@ -223,8 +223,11 @@ Reflète le fonctionnement réel de la boutique — trois personnes, trois étap
   cohérente (voir `ui/style.qss`)
 - Écran d'accueil illustré, avec la connexion dans un panneau dédié ;
   bouton pour afficher/masquer le mot de passe (identifiant, création de
-  compte) ; boutons « Ouvrir le PDF » / « Imprimer » après l'enregistrement
-  d'une commande
+  compte) ; après l'enregistrement d'une commande, bouton « Aperçu et
+  impression » qui ouvre le PDF (nommé « Facture n° … » ou « Ticket … »)
+  dans le lecteur par défaut, pour toujours voir l'aperçu avant d'imprimer
+- Export Excel (.xlsx) du stock (écran Articles) et des rapports de ventes
+  (écran Rapports)
 
 ## Corrections apportées au code initial (voir l'audit)
 

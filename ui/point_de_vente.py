@@ -193,10 +193,9 @@ class PointDeVente(QWidget):
         dossier_documents = os.path.join(os.path.expanduser("~"), "Documents", "Ventes_Quincaillerie")
         os.makedirs(dossier_documents, exist_ok=True)
 
-        horodatage = datetime.now().strftime("%Y%m%d_%H%M%S")
-
         if type_document == "facture":
-            nom_fichier = f"facture_{resultat_vente['numero_facture']}.pdf"
+            date_du_jour = datetime.now().strftime("%Y-%m-%d")
+            nom_fichier = f"Facture n° {resultat_vente['numero_facture']} - {date_du_jour}.pdf"
             chemin = os.path.join(dossier_documents, nom_fichier)
             generer_facture_pdf(
                 chemin,
@@ -206,7 +205,8 @@ class PointDeVente(QWidget):
                 self.utilisateur["site_nom"],
             )
         else:
-            nom_fichier = f"ticket_{horodatage}.pdf"
+            horodatage = datetime.now().strftime("%Y-%m-%d %Hh%M")
+            nom_fichier = f"Ticket {horodatage}.pdf"
             chemin = os.path.join(dossier_documents, nom_fichier)
             generer_ticket_pdf(
                 chemin,
