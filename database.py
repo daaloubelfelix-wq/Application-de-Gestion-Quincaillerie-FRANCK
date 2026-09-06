@@ -60,7 +60,8 @@ class Database:
             except psycopg.OperationalError as erreur:
                 raise ConnectionError(
                     "Impossible de joindre le serveur. "
-                    "Vérifiez que le poste serveur est allumé et connecté au réseau."
+                    "Vérifiez que le poste serveur est allumé et connecté au réseau.\n\n"
+                    f"Détail technique : {erreur}"
                 ) from erreur
         return cls._connection
 
