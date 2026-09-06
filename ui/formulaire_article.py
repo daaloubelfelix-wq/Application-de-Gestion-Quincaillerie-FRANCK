@@ -3,19 +3,23 @@ Formulaire d'ajout ou de modification d'un article.
 Réutilisé pour la création (article=None) et la modification (article fourni).
 
 L'agent stock (magasin) ne s'occupe que de l'inventaire : nom, unité,
-quantité, seuil d'alerte — jamais des montants ni du fournisseur, qui
-restent réservés au responsable (voir ui/gestion_fournisseurs.py). Tant
-que le responsable n'a pas fixé le prix de vente d'un nouvel article créé
-par l'agent stock, l'article n'apparaît pas dans la recherche de vente
-(voir modules/ventes.py::rechercher_articles) — pas de vente à 0 FCFA par
-erreur.
+quantité — jamais des montants ni du fournisseur, qui restent réservés
+au responsable (voir ui/gestion_fournisseurs.py). Tant que le responsable
+n'a pas fixé le prix de vente d'un nouvel article créé par l'agent stock,
+l'article n'apparaît pas dans la recherche de vente (voir
+modules/ventes.py::rechercher_articles) — pas de vente à 0 FCFA par erreur.
+
+Le seuil d'alerte n'est JAMAIS un champ modifiable ici : il est calculé
+automatiquement par modules/articles.py à partir de la quantité reçue au
+dernier réapprovisionnement, et seulement affiché en lecture seule.
+Autoriser à le changer à la main ouvrirait la porte à masquer un vol sur
+la quantité (baisser le seuil pour qu'aucune alerte ne se déclenche).
 
 Contrôle anti-fraude : sur un article déjà existant, seul le responsable
 peut changer le prix de vente ; tout changement de prix est enregistré
-dans historique_prix_articles. Le nom, l'unité et le seuil d'alerte sont
-eux aussi tracés (historique_modifications_articles), y compris pour
-l'agent stock — voir modules/articles.py — pour qu'un changement ne
-passe jamais inaperçu, quel que soit le champ.
+dans historique_prix_articles. Le nom et l'unité sont eux aussi tracés
+(historique_modifications_articles), y compris pour l'agent stock — voir
+modules/articles.py — pour qu'un changement ne passe jamais inaperçu.
 """
 
 from PyQt6.QtWidgets import (
@@ -26,14 +30,10 @@ from PyQt6.QtWidgets import (
 from database import Database
 from modules.articles import (
     creer_article, modifier_article, derniere_modification_prix, derniere_modification_champ,
+    FRACTION_SEUIL_AUTOMATIQUE,
 )
 
 UNITES_DISPONIBLES = ["sac", "barre", "unité", "m3", "litre", "kg", "rouleau", "bidon"]
-
-# Suggestion de seuil d'alerte = une fraction de la quantité de départ,
-# au lieu d'une valeur fixe identique pour tous les articles. Reste
-# modifiable à la main si besoin — ce n'est qu'une suggestion de départ.
-_FRACTION_SEUIL_SUGGERE = 0.2
 
 
 class FormulaireArticle(QDialog):
@@ -63,14 +63,11 @@ class FormulaireArticle(QDialog):
         self.champ_unite.addItems(UNITES_DISPONIBLES)
         self.champ_unite.setEditable(True)
 
-        self.champ_seuil_alerte = QSpinBox()
-        self.champ_seuil_alerte.setMaximum(100_000)
-
         layout.addRow("Nom de l'article", self.champ_nom)
         layout.addRow("Unité", self.champ_unite)
 
         # Le prix de vente reste réservé au responsable — l'agent stock ne
-        # gère que l'inventaire (nom, quantité, seuil), jamais les montants.
+        # gère que l'inventaire (nom, quantité), jamais les montants.
         self.champ_prix_vente = None
         if self.gere_les_montants:
             self.champ_prix_vente = QDoubleSpinBox()
@@ -78,15 +75,21 @@ class FormulaireArticle(QDialog):
             self.champ_prix_vente.setSuffix(" FCFA")
             layout.addRow("Prix de vente", self.champ_prix_vente)
 
-        layout.addRow("Seuil d'alerte", self.champ_seuil_alerte)
+        # Le seuil d'alerte n'est jamais un champ de saisie — seulement
+        # une valeur calculée, affichée à titre indicatif.
+        self.label_seuil = QLabel()
+        self.label_seuil.setObjectName("texteAttenue")
+        self.label_seuil.setWordWrap(True)
+        layout.addRow("Seuil d'alerte", self.label_seuil)
 
         if self.article is None:
-            self._seuil_modifie_a_la_main = False
-            self.champ_seuil_alerte.valueChanged.connect(self._sur_modification_seuil)
             self.champ_quantite_initiale = QSpinBox()
             self.champ_quantite_initiale.setMaximum(1_000_000)
-            self.champ_quantite_initiale.valueChanged.connect(self._suggerer_seuil)
+            self.champ_quantite_initiale.setMinimum(0)
+            self.champ_quantite_initiale.setSpecialValueText(" ")
+            self.champ_quantite_initiale.valueChanged.connect(self._actualiser_apercu_seuil)
             layout.addRow("Quantité initiale", self.champ_quantite_initiale)
+            self._actualiser_apercu_seuil(0)
             if not self.gere_les_montants:
                 note = QLabel(
                     "Le prix de vente sera fixé par le responsable — l'article "
@@ -110,17 +113,11 @@ class FormulaireArticle(QDialog):
 
         self.setLayout(layout)
 
-    def _sur_modification_seuil(self, _valeur):
-        self._seuil_modifie_a_la_main = True
-
-    def _suggerer_seuil(self, quantite):
-        """Suggestion automatique du seuil à partir de la quantité de
-        départ, tant que l'utilisateur n'a pas lui-même changé le champ."""
-        if self._seuil_modifie_a_la_main:
-            return
-        self.champ_seuil_alerte.blockSignals(True)
-        self.champ_seuil_alerte.setValue(max(1, round(quantite * _FRACTION_SEUIL_SUGGERE)))
-        self.champ_seuil_alerte.blockSignals(False)
+    def _actualiser_apercu_seuil(self, quantite):
+        """Aperçu du seuil qui sera calculé à la création — purement
+        informatif, ce n'est jamais une valeur qu'on saisit."""
+        apercu = max(1, round(quantite * FRACTION_SEUIL_AUTOMATIQUE)) if quantite else 0
+        self.label_seuil.setText(f"{apercu} (sera recalculé à chaque réception de stock)")
 
     def _afficher_derniere_modification(self, layout):
         # Changement de prix : visible seulement du responsable, qui est
@@ -138,8 +135,7 @@ class FormulaireArticle(QDialog):
                 label.setWordWrap(True)
                 layout.addRow(label)
 
-        # Changement de nom/unité/seuil : visible de tous, y compris
-        # l'agent stock, qui gère justement ces champs.
+        # Changement de nom/unité : visible de tous, y compris l'agent stock.
         derniere_champ = derniere_modification_champ(self.article["id"])
         if derniere_champ:
             texte = (
@@ -158,7 +154,9 @@ class FormulaireArticle(QDialog):
         self.champ_unite.setCurrentText(self.article["unite"])
         if self.champ_prix_vente is not None:
             self.champ_prix_vente.setValue(float(self.article["prix_vente"]))
-        self.champ_seuil_alerte.setValue(self.article["seuil_alerte"])
+        self.label_seuil.setText(
+            f"{self.article['seuil_alerte']} (se recalcule à la prochaine réception de stock)"
+        )
 
     def _valider(self):
         prix_vente = self.champ_prix_vente.value() if self.champ_prix_vente is not None else None
@@ -173,7 +171,6 @@ class FormulaireArticle(QDialog):
                     prix_achat=0,
                     prix_vente=prix_vente if prix_vente is not None else 0,
                     quantite_initiale=self.champ_quantite_initiale.value(),
-                    seuil_alerte=self.champ_seuil_alerte.value(),
                     fournisseur_id=None,
                 )
             else:
@@ -184,7 +181,6 @@ class FormulaireArticle(QDialog):
                     unite=self.champ_unite.currentText(),
                     prix_achat=float(self.article.get("prix_achat") or 0),
                     prix_vente=prix_vente if prix_vente is not None else float(self.article["prix_vente"]),
-                    seuil_alerte=self.champ_seuil_alerte.value(),
                     utilisateur_id=self.utilisateur["id"],
                     fournisseur_id=self.article.get("fournisseur_id"),
                 )

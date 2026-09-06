@@ -14,7 +14,7 @@ import os
 from datetime import datetime
 
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton, QLabel,
+    QWidget, QVBoxLayout, QHBoxLayout, QFormLayout, QLineEdit, QPushButton, QLabel,
     QListWidget, QListWidgetItem, QMessageBox, QComboBox, QFrame, QSpinBox
 )
 from PyQt6.QtCore import Qt
@@ -69,8 +69,9 @@ class PointDeVente(QWidget):
         ligne_quantite = QHBoxLayout()
         ligne_quantite.addWidget(QLabel("Quantité :"))
         self.champ_quantite = QSpinBox()
-        self.champ_quantite.setRange(1, 99999)
-        self.champ_quantite.setValue(1)
+        self.champ_quantite.setRange(0, 99999)
+        self.champ_quantite.setValue(0)
+        self.champ_quantite.setSpecialValueText(" ")
         ligne_quantite.addWidget(self.champ_quantite)
         bouton_ajouter = QPushButton("Ajouter au panier")
         bouton_ajouter.clicked.connect(self._ajouter_selection_au_panier)
@@ -110,25 +111,25 @@ class PointDeVente(QWidget):
         self.setLayout(layout)
 
     def _construire_zone_totaux(self):
-        vlayout = QVBoxLayout()
-        self.label_sous_total = QLabel("Sous-total HT : 0 FCFA")
-        self.label_tva = QLabel(f"TVA ({TAUX_TVA}%) : 0 FCFA")
-        self.label_total = QLabel("Total payé par le client : 0 FCFA")
+        formulaire = QFormLayout()
+        formulaire.setLabelAlignment(Qt.AlignmentFlag.AlignLeft)
+        formulaire.setFormAlignment(Qt.AlignmentFlag.AlignLeft)
+        formulaire.setHorizontalSpacing(18)
+
+        self.label_sous_total = QLabel("0 FCFA")
+        self.label_tva = QLabel("0 FCFA")
+        self.label_total = QLabel("0 FCFA")
         self.label_total.setObjectName("totalMisEnValeur")
 
-        ligne_mode_paiement = QHBoxLayout()
-        libelle_mode = QLabel("Mode de paiement (indiqué sur le facturier) :")
         self.selecteur_mode_paiement = QComboBox()
         for code, libelle in MODES_PAIEMENT:
             self.selecteur_mode_paiement.addItem(libelle, code)
-        ligne_mode_paiement.addWidget(libelle_mode)
-        ligne_mode_paiement.addWidget(self.selecteur_mode_paiement)
 
-        vlayout.addWidget(self.label_sous_total)
-        vlayout.addWidget(self.label_tva)
-        vlayout.addWidget(self.label_total)
-        vlayout.addLayout(ligne_mode_paiement)
-        self.cadre_totaux.setLayout(vlayout)
+        formulaire.addRow("Sous-total HT :", self.label_sous_total)
+        formulaire.addRow(f"TVA ({TAUX_TVA}%) :", self.label_tva)
+        formulaire.addRow("Total payé par le client :", self.label_total)
+        formulaire.addRow("Mode de paiement (indiqué sur le facturier) :", self.selecteur_mode_paiement)
+        self.cadre_totaux.setLayout(formulaire)
 
     # ------------------------------------------------------------
     # Recherche et gestion du panier
@@ -157,6 +158,10 @@ class PointDeVente(QWidget):
         article = item.data(Qt.ItemDataRole.UserRole)
         quantite_demandee = self.champ_quantite.value()
 
+        if quantite_demandee <= 0:
+            QMessageBox.information(self, "Quantité manquante", "Indiquez d'abord une quantité.")
+            return
+
         if article["quantite_stock"] <= 0:
             QMessageBox.warning(self, "Rupture de stock", f"'{article['nom']}' n'est plus en stock.")
             return
@@ -170,7 +175,7 @@ class PointDeVente(QWidget):
                     return
                 ligne["quantite"] = nouvelle_quantite
                 self._rafraichir_panier()
-                self.champ_quantite.setValue(1)
+                self.champ_quantite.setValue(0)
                 return
 
         if quantite_demandee > article["quantite_stock"]:
@@ -185,7 +190,7 @@ class PointDeVente(QWidget):
             "stock_disponible": article["quantite_stock"],
         })
         self._rafraichir_panier()
-        self.champ_quantite.setValue(1)
+        self.champ_quantite.setValue(0)
 
     def _retirer_du_panier(self):
         index = self.liste_panier.currentRow()
@@ -205,9 +210,9 @@ class PointDeVente(QWidget):
         else:
             sous_total, tva, total = 0, 0, 0
 
-        self.label_sous_total.setText(f"Sous-total HT : {sous_total:,.0f} FCFA".replace(",", " "))
-        self.label_tva.setText(f"TVA ({TAUX_TVA}%) : {tva:,.0f} FCFA".replace(",", " "))
-        self.label_total.setText(f"Total payé par le client : {total:,.0f} FCFA".replace(",", " "))
+        self.label_sous_total.setText(f"{sous_total:,.0f} FCFA".replace(",", " "))
+        self.label_tva.setText(f"{tva:,.0f} FCFA".replace(",", " "))
+        self.label_total.setText(f"{total:,.0f} FCFA".replace(",", " "))
 
     # ------------------------------------------------------------
     # Enregistrement de la vente (déjà payée à la caisse)

@@ -6,6 +6,19 @@ connecté (un agent ne peut jamais créer un article sur l'autre site).
 
 from database import Database
 
+# Seuil d'alerte = une fraction de la quantité reçue au dernier
+# réapprovisionnement — jamais une valeur saisie à la main. Recalculé
+# uniquement lors d'une ENTRÉE de stock (création, réception fournisseur),
+# jamais lors d'une sortie (vente, casse) ni d'une simple modification de
+# fiche : sinon quelqu'un pourrait abaisser le seuil pour masquer un vol
+# sur la quantité, ou le seuil finirait par toujours coller à la quantité
+# restante et ne jamais se déclencher.
+FRACTION_SEUIL_AUTOMATIQUE = 0.2
+
+
+def _calculer_seuil_automatique(quantite_reference):
+    return max(1, round(quantite_reference * FRACTION_SEUIL_AUTOMATIQUE))
+
 
 def lister_articles(site_id=None, terme_recherche=None):
     """site_id=None (responsable uniquement) consolide tous les sites."""
@@ -34,12 +47,15 @@ def lister_articles(site_id=None, terme_recherche=None):
 
 
 def creer_article(site_id, nom, categorie, unite, prix_achat, prix_vente,
-                   quantite_initiale, seuil_alerte, fournisseur_id=None):
+                   quantite_initiale, fournisseur_id=None):
     """
     prix_vente peut valoir 0 : cas de l'agent stock, qui crée l'article
     sans en fixer le prix (réservé au responsable) — tant qu'il vaut 0,
     l'article n'apparaît pas dans la recherche de vente, voir
     modules/ventes.py::rechercher_articles.
+
+    Le seuil d'alerte n'est jamais saisi : il est calculé automatiquement
+    à partir de la quantité de départ (voir FRACTION_SEUIL_AUTOMATIQUE).
     """
     if not nom.strip():
         raise ValueError("Le nom de l'article est obligatoire.")
@@ -57,23 +73,24 @@ def creer_article(site_id, nom, categorie, unite, prix_achat, prix_vente,
         RETURNING id
         """,
         (nom.strip(), categorie, unite, prix_achat, prix_vente,
-         quantite_initiale, seuil_alerte, site_id, fournisseur_id),
+         quantite_initiale, _calculer_seuil_automatique(quantite_initiale), site_id, fournisseur_id),
     )
     return article["id"]
 
 
 def modifier_article(article_id, nom, categorie, unite, prix_achat, prix_vente,
-                      seuil_alerte, utilisateur_id, fournisseur_id=None):
+                      utilisateur_id, fournisseur_id=None):
     """
     Toute modification de prix_achat/prix_vente est enregistrée dans
     historique_prix_articles (qui, quand, ancien montant, nouveau montant) ;
-    toute modification de nom/unité/seuil_alerte est enregistrée dans
+    toute modification de nom/unité est enregistrée dans
     historique_modifications_articles — sans cette traçabilité, un prix
-    modifié en douce ouvre la porte au vol, et un seuil ou un nom changé
-    sans laisser de trace empêche de savoir qui a fait quoi. Le formulaire
+    modifié en douce ouvre la porte au vol, et un nom changé sans laisser
+    de trace empêche de savoir qui a fait quoi. Le formulaire
     (ui/formulaire_article.py) réserve déjà les prix au responsable pour
     un article existant ; ceci est la seconde ligne de défense, côté
-    logique métier.
+    logique métier. Le seuil d'alerte n'est jamais modifié ici — il ne
+    change qu'à une entrée de stock, voir ajuster_stock_manuellement.
     """
     if not nom.strip():
         raise ValueError("Le nom de l'article est obligatoire.")
@@ -82,7 +99,7 @@ def modifier_article(article_id, nom, categorie, unite, prix_achat, prix_vente,
 
     with Database.transaction() as cur:
         cur.execute(
-            "SELECT nom, unite, prix_achat, prix_vente, seuil_alerte FROM articles WHERE id = %s FOR UPDATE",
+            "SELECT nom, unite, prix_achat, prix_vente FROM articles WHERE id = %s FOR UPDATE",
             (article_id,),
         )
         article_actuel = cur.fetchone()
@@ -93,10 +110,10 @@ def modifier_article(article_id, nom, categorie, unite, prix_achat, prix_vente,
             """
             UPDATE articles
             SET nom = %s, categorie = %s, unite = %s,
-                prix_achat = %s, prix_vente = %s, seuil_alerte = %s, fournisseur_id = %s
+                prix_achat = %s, prix_vente = %s, fournisseur_id = %s
             WHERE id = %s
             """,
-            (nom.strip(), categorie, unite, prix_achat, prix_vente, seuil_alerte, fournisseur_id, article_id),
+            (nom.strip(), categorie, unite, prix_achat, prix_vente, fournisseur_id, article_id),
         )
 
         prix_ont_change = (
@@ -118,7 +135,6 @@ def modifier_article(article_id, nom, categorie, unite, prix_achat, prix_vente,
         champs_a_tracer = [
             ("nom", article_actuel["nom"], nom.strip()),
             ("unite", article_actuel["unite"], unite),
-            ("seuil_alerte", article_actuel["seuil_alerte"], seuil_alerte),
         ]
         for champ, ancienne_valeur, nouvelle_valeur in champs_a_tracer:
             if str(ancienne_valeur) != str(nouvelle_valeur):
@@ -176,6 +192,11 @@ def ajuster_stock_manuellement(article_id, type_mouvement, quantite, motif, util
     type_mouvement : 'entree' ou 'sortie'
     Utilisé par exemple lors d'une réception fournisseur (entrée)
     ou d'une casse/perte constatée (sortie).
+
+    Une entrée recalcule automatiquement le seuil d'alerte à partir de la
+    nouvelle quantité en stock (nouveau réapprovisionnement = nouvelle
+    référence) ; une sortie ne touche jamais au seuil, sinon il finirait
+    par toujours coller à la quantité restante et ne jamais se déclencher.
     """
     if type_mouvement not in ("entree", "sortie"):
         raise ValueError("Type de mouvement invalide.")
@@ -185,18 +206,38 @@ def ajuster_stock_manuellement(article_id, type_mouvement, quantite, motif, util
     variation = quantite if type_mouvement == "entree" else -quantite
 
     with Database.transaction() as cur:
-        # Condition vérifiée par PostgreSQL au moment de l'écriture : protège
-        # contre une sortie simultanée depuis un autre poste (voir modules/ventes.py).
-        cur.execute(
-            """
-            UPDATE articles
-            SET quantite_stock = quantite_stock + %s
-            WHERE id = %s AND quantite_stock + %s >= 0
-            RETURNING nom
-            """,
-            (variation, article_id, variation),
-        )
-        resultat = cur.fetchone()
+        if type_mouvement == "entree":
+            # Le seuil dépend de la nouvelle quantité : on la lit d'abord
+            # pour calculer le nouveau seuil dans la même écriture.
+            cur.execute("SELECT quantite_stock FROM articles WHERE id = %s FOR UPDATE", (article_id,))
+            article_verrouille = cur.fetchone()
+            if article_verrouille is None:
+                raise ValueError("Article introuvable.")
+            nouveau_seuil = _calculer_seuil_automatique(article_verrouille["quantite_stock"] + quantite)
+            cur.execute(
+                """
+                UPDATE articles
+                SET quantite_stock = quantite_stock + %s, seuil_alerte = %s
+                WHERE id = %s
+                RETURNING nom
+                """,
+                (quantite, nouveau_seuil, article_id),
+            )
+            resultat = cur.fetchone()
+        else:
+            # Condition vérifiée par PostgreSQL au moment de l'écriture :
+            # protège contre une sortie simultanée depuis un autre poste
+            # (voir modules/ventes.py).
+            cur.execute(
+                """
+                UPDATE articles
+                SET quantite_stock = quantite_stock + %s
+                WHERE id = %s AND quantite_stock + %s >= 0
+                RETURNING nom
+                """,
+                (variation, article_id, variation),
+            )
+            resultat = cur.fetchone()
         if resultat is None:
             cur.execute("SELECT nom, quantite_stock FROM articles WHERE id = %s", (article_id,))
             article = cur.fetchone()
