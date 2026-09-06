@@ -85,7 +85,7 @@ quincaillerie_app/
 │   ├── auth.py                   Authentification, verrouillage après 5 échecs
 │   ├── articles.py                Gestion des articles et du stock
 │   ├── ventes.py                  Enregistrement des ventes (transactionnel)
-│   ├── facturation.py             Génération des PDF (ticket et facture)
+│   ├── facturation.py             Génération des PDF (bon de commande, ticket, facture)
 │   ├── comptabilite.py            Recettes, dépenses, historique
 │   ├── rapports.py                Totaux par période, produits les plus vendus
 │   ├── fournisseurs.py            Gestion des fournisseurs
@@ -97,8 +97,8 @@ quincaillerie_app/
 │   ├── gestion_articles.py        Liste, ajout, modification des articles
 │   ├── formulaire_article.py      Formulaire article
 │   ├── formulaire_mouvement_stock.py  Formulaire d'entrée/sortie de stock manuelle
-│   ├── point_de_vente.py          Nouvelle commande (comptabilité) — panier, ticket/facture
-│   ├── caisse.py                  Caisse (responsable) — encaissement/annulation des commandes
+│   ├── point_de_vente.py          Nouvelle commande (comptabilité) — panier, bon de commande
+│   ├── caisse.py                  Caisse (responsable) — encaissement (génère le document final), annulation
 │   ├── style.qss                  Feuille de style globale de l'application
 │   ├── comptabilite.py            Écran comptabilité
 │   ├── formulaire_transaction.py  Formulaire recette/dépense manuelle
@@ -177,18 +177,35 @@ un premier essai, mais l'adresse change à chaque redémarrage.)*
 
 ## Circuit d'une vente
 
-Reflète le fonctionnement réel de la boutique — trois personnes, trois étapes :
+Reflète le fonctionnement réel de la boutique — trois personnes, trois
+étapes. Inspiré du fonctionnement d'une pharmacie : **jamais de document
+numéroté avant que l'argent soit reçu**.
 
 1. **Le client choisit sa marchandise**, le magasin de stock s'assure juste
    que les articles et les quantités disponibles sont à jour (il ne vend pas
    directement).
 2. **La comptabilité enregistre la commande** (onglet « Nouvelle commande ») :
-   le stock est retiré à ce moment-là, et un ticket ou une facture indiquant
-   le montant à payer est imprimé.
+   le stock est retiré à ce moment-là, et un **bon de commande** (non
+   fiscal, pas de numéro) indiquant le montant à payer est imprimé — ce
+   n'est pas encore une facture ni un ticket.
 3. **Le client va payer à la caisse**, tenue par le responsable (onglet
    « Caisse ») : c'est seulement à cet instant que le paiement compte dans
-   les recettes du jour. Le responsable peut aussi annuler une commande non
-   payée (le stock retiré est alors restitué).
+   les recettes du jour, ET que le document final est généré — une facture
+   numérotée séquentiellement (`2026-0001`, `2026-0002`, ...) ou un simple
+   ticket, selon ce que la comptabilité avait choisi à l'étape 2. Le
+   responsable peut aussi annuler une commande non payée (le stock retiré
+   est alors restitué).
+
+### Séparer inventaire et facturation, par site
+
+Chaque compte (agent stock ou agent comptabilité) est rattaché à **un seul
+site** à sa création, et ne voit/gère que ce site — c'est déjà appliqué
+partout dans le code (catalogue, recherche d'articles pour la vente). Rien
+n'empêche donc de créer, par exemple, 4 comptes distincts : un agent stock
++ un agent comptabilité pour le Magasin de stock, et de même pour le
+Comptoir — chacun ne s'occupant que de sa tâche (inventaire OU
+facturation) sur son propre site. Seule la Caisse reste commune aux deux
+sites (rôle responsable).
 
 ## Navigation par rôle
 
@@ -210,12 +227,14 @@ Reflète le fonctionnement réel de la boutique — trois personnes, trois étap
   prix mais ne peut pas les modifier) ; tout changement de prix est de toute
   façon enregistré (qui, quand, ancien → nouveau montant), visible dans le
   formulaire de modification de l'article
-- Commande client (comptabilité) avec génération PDF au format ticket rapide
-  OU facture détaillée numérotée, TVA à 19,25% incluse — enregistrement
+- Commande client (comptabilité) avec génération d'un bon de commande PDF
+  non fiscal (TVA à 19,25% incluse dans le calcul) — enregistrement
   transactionnel (une commande est écrite intégralement ou pas du tout)
 - Caisse (responsable) : encaissement (Espèces, Orange Money, MTN Mobile
   Money, Crédit client, Autre) ou annulation des commandes en attente,
-  tous sites confondus
+  tous sites confondus — c'est l'encaissement qui génère et numérote le
+  document final (ticket rapide ou facture détaillée, selon le choix fait
+  à l'enregistrement de la commande)
 - Comptabilité : les encaissements créent automatiquement une recette,
   saisie manuelle possible pour les dépenses
 - Rapports : total des ventes payées, marge estimée, produits les plus vendus,

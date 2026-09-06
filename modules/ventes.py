@@ -1,12 +1,16 @@
 """
 Logique métier de la vente.
 
-Circuit réel de la boutique : la comptabilité enregistre la commande du
-client (le stock est retiré immédiatement, un ticket "montant à payer" est
-imprimé) ; le client va ensuite payer à la caisse, tenue par le responsable.
-C'est seulement à l'encaissement que la vente compte dans les recettes du
-jour — pas de double comptage, pas de recette avant que l'argent soit
-réellement reçu.
+Circuit réel de la boutique, inspiré de la pharmacie : on ne remet jamais
+un document numéroté avant d'avoir reçu l'argent. La comptabilité
+enregistre la commande du client (le stock est retiré immédiatement, un
+« bon de commande » non fiscal est imprimé, voir
+modules/facturation.py::generer_bon_commande_pdf) ; le client va ensuite
+payer à la caisse, tenue par le responsable. C'est seulement à
+l'encaissement que : la vente compte dans les recettes du jour, ET que le
+numéro de facture est attribué et que la facture/le ticket final est
+généré (voir encaisser_commande) — jamais avant, pour qu'un numéro de
+facture corresponde toujours à un paiement réellement reçu.
 
 Le taux de TVA (19,25%) est calculé une seule fois, dans
 modules/facturation.py, pour éviter toute incohérence.
@@ -24,11 +28,11 @@ def enregistrer_commande(utilisateur, lignes_panier, type_document="ticket"):
        simultanée du même article sur deux postes)
     2. Crée la vente (statut 'en_attente') + ses lignes
     3. Historise chaque mouvement de stock
-    Ne crée PAS encore de recette comptable : ça, c'est le rôle de
-    encaisser_commande(), au moment où l'argent est réellement reçu à la
-    caisse.
-    Retourne le dictionnaire de la commande créée (avec numero_facture si
-    applicable).
+    Ne crée PAS encore de recette comptable, et n'attribue PAS encore de
+    numéro de facture (même si type_document == 'facture') : ça, c'est le
+    rôle de encaisser_commande(), au moment où l'argent est réellement
+    reçu à la caisse — voir le docstring du module.
+    Retourne le dictionnaire de la commande créée.
     """
     if not lignes_panier:
         raise ValueError("Le panier est vide.")
@@ -61,21 +65,18 @@ def enregistrer_commande(utilisateur, lignes_panier, type_document="ticket"):
                     f"({article['quantite_stock']} disponibles, {ligne['quantite']} demandés)."
                 )
 
-        numero_facture = prochain_numero_facture(cur) if type_document == "facture" else None
-
         cur.execute(
             """
             INSERT INTO ventes
-                (site_id, utilisateur_id, type_document, numero_facture, statut,
+                (site_id, utilisateur_id, type_document, statut,
                  sous_total_ht, taux_tva, montant_tva, total_ttc)
-            VALUES (%s, %s, %s, %s, 'en_attente', %s, 19.25, %s, %s)
-            RETURNING id, numero_facture, date_vente
+            VALUES (%s, %s, %s, 'en_attente', %s, 19.25, %s, %s)
+            RETURNING id, date_vente
             """,
             (
                 utilisateur["site_id"],
                 utilisateur["id"],
                 type_document,
-                numero_facture,
                 sous_total_ht,
                 montant_tva,
                 total_ttc,
@@ -101,7 +102,6 @@ def enregistrer_commande(utilisateur, lignes_panier, type_document="ticket"):
 
     return {
         "id": vente["id"],
-        "numero_facture": vente["numero_facture"],
         "date_vente": vente["date_vente"],
         "sous_total_ht": sous_total_ht,
         "montant_tva": montant_tva,
@@ -135,9 +135,12 @@ def commandes_en_attente(site_id=None):
 def encaisser_commande(vente_id, utilisateur_caisse, mode_paiement):
     """
     Encaisse une commande en attente : crée la recette comptable (c'est elle
-    qui compte dans les recettes du jour) et marque la commande payée.
-    mode_paiement : voir modules/paiement.py (especes, orange_money,
-    mtn_momo, credit_client, autre).
+    qui compte dans les recettes du jour), marque la commande payée, et —
+    seulement maintenant, l'argent étant réellement reçu — attribue le
+    numéro de facture (si type_document == 'facture') et renvoie tout ce
+    qu'il faut pour générer le document final (facture ou ticket) à la
+    caisse (voir ui/caisse.py). mode_paiement : voir modules/paiement.py
+    (especes, orange_money, mtn_momo, credit_client, autre).
     """
     from modules.paiement import LIBELLES_MODES_PAIEMENT, libelle_mode_paiement
 
@@ -147,17 +150,31 @@ def encaisser_commande(vente_id, utilisateur_caisse, mode_paiement):
     with Database.transaction() as cur:
         cur.execute(
             """
-            UPDATE ventes
-            SET statut = 'payee', utilisateur_caisse_id = %s,
-                date_encaissement = NOW(), mode_paiement = %s
-            WHERE id = %s AND statut = 'en_attente'
-            RETURNING site_id, total_ttc
+            SELECT v.site_id, v.total_ttc, v.type_document, v.statut,
+                   s.nom AS site_nom, u.nom_complet AS vendeur_nom
+            FROM ventes v
+            JOIN sites s ON s.id = v.site_id
+            JOIN utilisateurs u ON u.id = v.utilisateur_id
+            WHERE v.id = %s
+            FOR UPDATE OF v
             """,
-            (utilisateur_caisse["id"], mode_paiement, vente_id),
+            (vente_id,),
         )
         vente = cur.fetchone()
-        if vente is None:
+        if vente is None or vente["statut"] != "en_attente":
             raise ValueError("Cette commande n'existe pas ou a déjà été traitée.")
+
+        numero_facture = prochain_numero_facture(cur) if vente["type_document"] == "facture" else None
+
+        cur.execute(
+            """
+            UPDATE ventes
+            SET statut = 'payee', utilisateur_caisse_id = %s,
+                date_encaissement = NOW(), mode_paiement = %s, numero_facture = %s
+            WHERE id = %s
+            """,
+            (utilisateur_caisse["id"], mode_paiement, numero_facture, vente_id),
+        )
 
         description = f"Encaissement commande client ({libelle_mode_paiement(mode_paiement)})"
         cur.execute(
@@ -168,7 +185,28 @@ def encaisser_commande(vente_id, utilisateur_caisse, mode_paiement):
             (vente["site_id"], utilisateur_caisse["id"], vente["total_ttc"], description, vente_id),
         )
 
-    return {"id": vente_id, "total_ttc": vente["total_ttc"], "mode_paiement": mode_paiement}
+        cur.execute(
+            """
+            SELECT a.nom, l.quantite, l.prix_unitaire
+            FROM ventes_lignes l
+            JOIN articles a ON a.id = l.article_id
+            WHERE l.vente_id = %s
+            ORDER BY l.id
+            """,
+            (vente_id,),
+        )
+        lignes = cur.fetchall()
+
+    return {
+        "id": vente_id,
+        "total_ttc": vente["total_ttc"],
+        "mode_paiement": mode_paiement,
+        "type_document": vente["type_document"],
+        "numero_facture": numero_facture,
+        "site_nom": vente["site_nom"],
+        "vendeur_nom": vente["vendeur_nom"],
+        "lignes": lignes,
+    }
 
 
 def annuler_commande(vente_id, utilisateur):

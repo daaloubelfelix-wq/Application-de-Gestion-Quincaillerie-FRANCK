@@ -29,6 +29,10 @@ précédente (ex : on ne peut pas encaisser une commande qui n'a pas encore
 | Amadou | Agent stock | Magasin de stock (matériaux lourds) | `a.magasin` |
 | Chantal | Agent comptabilité | Comptoir | `c.comptoir` |
 
+*Ce test n'utilise que 2 agents pour rester simple. En réalité, rien
+n'empêche d'avoir 4 comptes distincts (un inventaire + une facturation
+par site) : chaque compte ne voit et ne gère déjà que son propre site.*
+
 ---
 
 ## Étape 1 — Connexion Responsable (Franck)
@@ -103,13 +107,17 @@ précédente (ex : on ne peut pas encaisser une commande qui n'a pas encore
    - ✅ **À vérifier** : cliquez dessus — le PDF doit s'ouvrir dans
      votre lecteur habituel (Edge/Adobe), **pas** partir directement à
      l'imprimante. C'est le nouveau comportement demandé.
+   - ✅ **À vérifier** : le document s'appelle « BON DE COMMANDE » et
+     précise « Ce document n'est pas une facture ». C'est normal et
+     volontaire — comme à la pharmacie, on ne remet un document numéroté
+     qu'une fois payé. La vraie facture sera générée à la caisse, à
+     l'étape 4.
    - ✅ **À vérifier** : dans l'explorateur de fichiers
      (`Documents\Ventes_Quincaillerie`), le fichier doit s'appeler
-     `Facture n° ... - AAAA-MM-JJ.pdf` (pas `facture_12.pdf`).
+     `Bon de commande AAAA-MM-JJ 14h32.pdf`.
 4. Enregistrez une deuxième commande, cette fois **Ticket rapide**, avec
-   juste `Marteau` (quantité 1).
-   - ✅ **À vérifier** : le fichier doit s'appeler `Ticket AAAA-MM-JJ
-     14h32.pdf` (l'heure exacte variera, bien sûr).
+   juste `Marteau` (quantité 1). Même chose : un bon de commande, pas
+   encore de ticket.
 5. Déconnectez-vous.
 
 ---
@@ -119,11 +127,20 @@ précédente (ex : on ne peut pas encaisser une commande qui n'a pas encore
 1. Reconnectez-vous avec votre compte responsable.
 2. Onglet **Caisse** :
    - ✅ **À vérifier** : les deux commandes de Chantal apparaissent
-     (« Enregistrée par Chantal Mbarga »).
+     (« Enregistrée par Chantal Mbarga »), la colonne Document affiche
+     juste « Facture » / « Ticket », sans numéro — normal, il n'est
+     attribué qu'à l'encaissement.
    - Cliquez **Encaisser** sur la facture → mode de paiement
      **Espèces** → confirmez.
+   - ✅ **À vérifier** : une fenêtre « Aperçu et impression » s'ouvre —
+     c'est maintenant la **vraie facture numérotée** (`Facture n°
+     2026-0001` par exemple) qui est générée. Ouvrez-la : elle doit
+     contenir Marteau et Peinture blanche avec les bons montants.
    - Cliquez **Encaisser** sur le ticket → mode de paiement **Orange
      Money** → confirmez.
+   - ✅ **À vérifier** : cette fois le document généré est un simple
+     `Ticket AAAA-MM-JJ 14h32.pdf`, toujours sans numéro (les tickets
+     n'en ont jamais).
    - ✅ **À vérifier** : la liste des commandes en attente est
      maintenant vide.
 3. Essayez de recliquer *Encaisser* sur une commande déjà encaissée (si

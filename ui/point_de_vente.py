@@ -2,11 +2,15 @@
 Écran d'enregistrement des commandes clients (tenu par la comptabilité).
 Recherche d'articles (limitée au catalogue du site de l'utilisateur),
 panier, calcul automatique de la TVA, et choix entre ticket rapide
-ou facture détaillée.
+ou facture détaillée pour le document FINAL — celui-ci n'est généré
+qu'à l'encaissement (voir ui/caisse.py).
 
 Cet écran ne prend PAS le paiement : il enregistre la commande (le stock
-est retiré immédiatement) et imprime le montant à payer. Le client va
-ensuite payer à la caisse (voir ui/caisse.py, tenu par le responsable).
+est retiré immédiatement) et imprime un bon de commande non fiscal avec
+le montant à payer. Le client va ensuite payer à la caisse (voir
+ui/caisse.py, tenu par le responsable), où le document final (facture
+numérotée ou ticket) est généré — inspiré du fonctionnement d'une
+pharmacie : jamais de document numéroté avant paiement.
 """
 
 import os
@@ -19,7 +23,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt
 
 from modules.ventes import enregistrer_commande, rechercher_articles
-from modules.facturation import calculer_totaux, generer_ticket_pdf, generer_facture_pdf
+from modules.facturation import calculer_totaux, generer_bon_commande_pdf
 from ui.dialogue_document import DialogueDocumentGenere
 
 
@@ -175,12 +179,15 @@ class PointDeVente(QWidget):
             QMessageBox.critical(self, "Impossible d'enregistrer la commande", str(erreur))
             return
 
-        chemin_pdf = self._generer_pdf(resultat, type_document)
+        chemin_pdf = self._generer_bon_commande()
 
-        message = "Commande enregistrée."
-        if resultat.get("numero_facture"):
-            message += f"\nFacture n° {resultat['numero_facture']}"
-        message += f"\nMontant à payer à la caisse : {resultat['total_ttc']:,.0f} FCFA".replace(",", " ")
+        message = (
+            "Commande enregistrée.\n"
+            "Ceci n'est pas une facture : le client doit se présenter à la "
+            "caisse avec le bon de commande pour payer et recevoir le "
+            f"document final.\nMontant à régler à la caisse : "
+            f"{resultat['total_ttc']:,.0f} FCFA".replace(",", " ")
+        )
 
         DialogueDocumentGenere("Commande enregistrée", message, chemin_pdf, parent=self).exec()
 
@@ -189,30 +196,17 @@ class PointDeVente(QWidget):
         self.champ_recherche.clear()
         self.liste_resultats.clear()
 
-    def _generer_pdf(self, resultat_vente, type_document):
+    def _generer_bon_commande(self):
         dossier_documents = os.path.join(os.path.expanduser("~"), "Documents", "Ventes_Quincaillerie")
         os.makedirs(dossier_documents, exist_ok=True)
 
-        if type_document == "facture":
-            date_du_jour = datetime.now().strftime("%Y-%m-%d")
-            nom_fichier = f"Facture n° {resultat_vente['numero_facture']} - {date_du_jour}.pdf"
-            chemin = os.path.join(dossier_documents, nom_fichier)
-            generer_facture_pdf(
-                chemin,
-                resultat_vente["numero_facture"],
-                self.panier,
-                self.utilisateur["nom_complet"],
-                self.utilisateur["site_nom"],
-            )
-        else:
-            horodatage = datetime.now().strftime("%Y-%m-%d %Hh%M")
-            nom_fichier = f"Ticket {horodatage}.pdf"
-            chemin = os.path.join(dossier_documents, nom_fichier)
-            generer_ticket_pdf(
-                chemin,
-                self.panier,
-                self.utilisateur["nom_complet"],
-                self.utilisateur["site_nom"],
-            )
-
+        horodatage = datetime.now().strftime("%Y-%m-%d %Hh%M")
+        nom_fichier = f"Bon de commande {horodatage}.pdf"
+        chemin = os.path.join(dossier_documents, nom_fichier)
+        generer_bon_commande_pdf(
+            chemin,
+            self.panier,
+            self.utilisateur["nom_complet"],
+            self.utilisateur["site_nom"],
+        )
         return chemin
