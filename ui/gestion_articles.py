@@ -1,7 +1,9 @@
 """
 Écran de gestion des articles.
 Liste filtrable par catégorie/recherche, alertes visuelles de stock faible,
-ajout et modification via formulaire.
+ajout et modification via formulaire. Le responsable (site_id = None) voit
+et gère les articles de tous les sites, avec une colonne Site en plus ;
+un agent stock ne voit que les articles de son propre site.
 """
 
 from datetime import datetime
@@ -23,6 +25,7 @@ class GestionArticles(QWidget):
     def __init__(self, utilisateur):
         super().__init__()
         self.utilisateur = utilisateur
+        self.tous_les_sites = utilisateur["site_id"] is None
         self._construire_interface()
         self._rafraichir_liste()
 
@@ -32,7 +35,8 @@ class GestionArticles(QWidget):
         layout.setSpacing(12)
 
         entete = QHBoxLayout()
-        titre = QLabel(f"Articles · {self.utilisateur['site_nom']}")
+        nom_perimetre = self.utilisateur["site_nom"] or "Tous les sites"
+        titre = QLabel(f"Articles · {nom_perimetre}")
         titre.setStyleSheet("font-size: 15px; font-weight: bold;")
         bouton_exporter = QPushButton("Exporter Excel")
         bouton_exporter.setProperty("secondaire", True)
@@ -61,11 +65,15 @@ class GestionArticles(QWidget):
         filtres.addWidget(self.selecteur_categorie, stretch=1)
         layout.addLayout(filtres)
 
-        self.tableau = QTableWidget()
-        self.tableau.setColumnCount(6)
-        self.tableau.setHorizontalHeaderLabels(
+        self.colonnes = (
+            ["Nom", "Site", "Catégorie", "Prix de vente", "Stock", "Seuil", "Action"]
+            if self.tous_les_sites else
             ["Nom", "Catégorie", "Prix de vente", "Stock", "Seuil", "Action"]
         )
+
+        self.tableau = QTableWidget()
+        self.tableau.setColumnCount(len(self.colonnes))
+        self.tableau.setHorizontalHeaderLabels(self.colonnes)
         self.tableau.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         self.tableau.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         self.tableau.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
@@ -80,25 +88,28 @@ class GestionArticles(QWidget):
             terme_recherche=self.champ_recherche.text().strip() or None,
         )
 
+        decalage = 1 if self.tous_les_sites else 0
         self.tableau.setRowCount(len(articles))
         for ligne, article in enumerate(articles):
             self.tableau.setItem(ligne, 0, QTableWidgetItem(article["nom"]))
-            self.tableau.setItem(ligne, 1, QTableWidgetItem(article.get("categorie") or "—"))
-            self.tableau.setItem(ligne, 2, QTableWidgetItem(f"{article['prix_vente']:.0f} FCFA"))
+            if self.tous_les_sites:
+                self.tableau.setItem(ligne, 1, QTableWidgetItem(article["site_nom"]))
+            self.tableau.setItem(ligne, 1 + decalage, QTableWidgetItem(article.get("categorie") or "—"))
+            self.tableau.setItem(ligne, 2 + decalage, QTableWidgetItem(f"{article['prix_vente']:.0f} FCFA"))
 
             item_stock = QTableWidgetItem(str(article["quantite_stock"]))
             if article["quantite_stock"] <= article["seuil_alerte"]:
                 item_stock.setBackground(QColor("#F4DDD0"))
                 item_stock.setForeground(QColor("#A8431C"))
-            self.tableau.setItem(ligne, 3, item_stock)
+            self.tableau.setItem(ligne, 3 + decalage, item_stock)
 
-            self.tableau.setItem(ligne, 4, QTableWidgetItem(str(article["seuil_alerte"])))
+            self.tableau.setItem(ligne, 4 + decalage, QTableWidgetItem(str(article["seuil_alerte"])))
 
             bouton_modifier = QPushButton("Modifier")
             bouton_modifier.clicked.connect(
                 lambda _, a=article: self._ouvrir_formulaire_modification(a)
             )
-            self.tableau.setCellWidget(ligne, 5, bouton_modifier)
+            self.tableau.setCellWidget(ligne, 5 + decalage, bouton_modifier)
 
     def _ouvrir_formulaire_ajout(self):
         dialogue = FormulaireArticle(self.utilisateur, article=None, parent=self)
@@ -118,7 +129,8 @@ class GestionArticles(QWidget):
             categorie=self.selecteur_categorie.currentText(),
             terme_recherche=self.champ_recherche.text().strip() or None,
         )
-        nom_suggere = f"Stock {self.utilisateur['site_nom']} - {datetime.now().strftime('%Y-%m-%d')}.xlsx"
+        nom_perimetre = self.utilisateur["site_nom"] or "Tous les sites"
+        nom_suggere = f"Stock {nom_perimetre} - {datetime.now().strftime('%Y-%m-%d')}.xlsx"
         chemin, _ = QFileDialog.getSaveFileName(
             self, "Exporter le stock en Excel", nom_suggere, "Classeur Excel (*.xlsx)"
         )

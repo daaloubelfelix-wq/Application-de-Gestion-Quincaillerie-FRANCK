@@ -62,6 +62,13 @@ QLineEdit, QComboBox, QSpinBox, QDoubleSpinBox {
 QLineEdit:focus, QComboBox:focus, QSpinBox:focus, QDoubleSpinBox:focus {
     border: 1px solid #B8710F;
 }
+/* Champ verrouillé (ex : prix d'un article, réservé au responsable) —
+   doit se voir clairement, sinon on croit pouvoir le modifier. */
+QLineEdit:disabled, QComboBox:disabled, QSpinBox:disabled, QDoubleSpinBox:disabled {
+    background-color: #EDEAE0;
+    color: #8A8577;
+    border: 1px solid #DDD7C9;
+}
 
 /* ---------- Onglets ---------- */
 QTabWidget::pane {

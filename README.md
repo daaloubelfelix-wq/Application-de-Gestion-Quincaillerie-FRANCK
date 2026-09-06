@@ -25,8 +25,9 @@ psql -U votre_utilisateur -d votre_base -f creation_base_donnees.sql
 ```
 
 *(Base déjà créée avec une version antérieure du projet ? Exécuter aussi les
-scripts `migration_v2_caisse.sql` puis `migration_v3_mode_paiement.sql`,
-dans cet ordre, plutôt que de tout recréer.)*
+scripts `migration_v2_caisse.sql`, `migration_v3_mode_paiement.sql` puis
+`migration_v4_historique_prix.sql`, dans cet ordre, plutôt que de tout
+recréer.)*
 
 Puis copier `config.example.ini` vers `config.ini` (même dossier) et renseigner
 l'adresse IP réelle du poste serveur ainsi que les identifiants de connexion.
@@ -193,7 +194,8 @@ Reflète le fonctionnement réel de la boutique — trois personnes, trois étap
 
 - **Agent stock** : Tableau de bord, Articles, Fournisseurs
 - **Agent comptabilité** : Tableau de bord, Comptabilité, Nouvelle commande
-- **Responsable** : Tableau de bord (consolidé), Caisse, Rapports, Fournisseurs, Utilisateurs
+- **Responsable** : Tableau de bord (consolidé), Articles (tous sites), Caisse,
+  Rapports, Fournisseurs, Utilisateurs
 
 ## Ce qui est fonctionnel
 
@@ -203,6 +205,11 @@ Reflète le fonctionnement réel de la boutique — trois personnes, trois étap
   responsable (vue consolidée avec sélecteur de site)
 - Gestion des articles avec alertes de stock faible ; mouvement de stock manuel
   (entrée/sortie) accessible depuis le tableau de bord de l'agent stock
+- Contrôle anti-fraude sur les prix : un article déjà créé ne peut avoir son
+  prix d'achat/vente changé que par le responsable (l'agent stock voit les
+  prix mais ne peut pas les modifier) ; tout changement de prix est de toute
+  façon enregistré (qui, quand, ancien → nouveau montant), visible dans le
+  formulaire de modification de l'article
 - Commande client (comptabilité) avec génération PDF au format ticket rapide
   OU facture détaillée numérotée, TVA à 19,25% incluse — enregistrement
   transactionnel (une commande est écrite intégralement ou pas du tout)

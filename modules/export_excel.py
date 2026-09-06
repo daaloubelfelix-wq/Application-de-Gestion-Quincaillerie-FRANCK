@@ -32,10 +32,11 @@ def exporter_articles_excel(chemin_fichier, articles):
     classeur = Workbook()
     feuille = classeur.active
     feuille.title = "Stock"
-    _ecrire_entete(feuille, ["Nom", "Catégorie", "Prix de vente (FCFA)", "Stock", "Seuil d'alerte"])
+    _ecrire_entete(feuille, ["Nom", "Site", "Catégorie", "Prix de vente (FCFA)", "Stock", "Seuil d'alerte"])
     for article in articles:
         feuille.append([
             article["nom"],
+            article.get("site_nom") or "",
             article.get("categorie") or "",
             article["prix_vente"],
             article["quantite_stock"],

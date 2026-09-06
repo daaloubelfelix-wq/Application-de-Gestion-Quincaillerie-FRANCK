@@ -7,32 +7,42 @@ connecté (un agent ne peut jamais créer un article sur l'autre site).
 from database import Database
 
 
-def lister_articles(site_id, categorie=None, terme_recherche=None):
-    conditions = ["site_id = %s"]
-    params = [site_id]
+def lister_articles(site_id=None, categorie=None, terme_recherche=None):
+    """site_id=None (responsable uniquement) consolide tous les sites."""
+    conditions = []
+    params = []
+
+    if site_id is not None:
+        conditions.append("a.site_id = %s")
+        params.append(site_id)
 
     if categorie and categorie != "Tous":
-        conditions.append("categorie = %s")
+        conditions.append("a.categorie = %s")
         params.append(categorie)
 
     if terme_recherche:
-        conditions.append("nom ILIKE %s")
+        conditions.append("a.nom ILIKE %s")
         params.append(f"%{terme_recherche}%")
 
+    clause_where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+
     requete = f"""
-        SELECT id, nom, categorie, unite, prix_achat, prix_vente,
-               quantite_stock, seuil_alerte, fournisseur_id
-        FROM articles
-        WHERE {' AND '.join(conditions)}
-        ORDER BY nom
+        SELECT a.id, a.nom, a.categorie, a.unite, a.prix_achat, a.prix_vente,
+               a.quantite_stock, a.seuil_alerte, a.fournisseur_id, a.site_id, s.nom AS site_nom
+        FROM articles a
+        JOIN sites s ON s.id = a.site_id
+        {clause_where}
+        ORDER BY a.nom
     """
     return Database.fetch_all(requete, params)
 
 
-def lister_categories(site_id):
+def lister_categories(site_id=None):
+    condition_site = "AND site_id = %s" if site_id is not None else ""
+    params = (site_id,) if site_id is not None else ()
     resultats = Database.fetch_all(
-        "SELECT DISTINCT categorie FROM articles WHERE site_id = %s AND categorie IS NOT NULL ORDER BY categorie",
-        (site_id,),
+        f"SELECT DISTINCT categorie FROM articles WHERE categorie IS NOT NULL {condition_site} ORDER BY categorie",
+        params,
     )
     return [r["categorie"] for r in resultats]
 
@@ -60,20 +70,67 @@ def creer_article(site_id, nom, categorie, unite, prix_achat, prix_vente,
     return article["id"]
 
 
-def modifier_article(article_id, nom, categorie, unite, prix_achat, prix_vente, seuil_alerte, fournisseur_id=None):
+def modifier_article(article_id, nom, categorie, unite, prix_achat, prix_vente,
+                      seuil_alerte, utilisateur_id, fournisseur_id=None):
+    """
+    Toute modification de prix_achat/prix_vente est enregistrée dans
+    historique_prix_articles (qui, quand, ancien montant, nouveau montant) —
+    sans cette traçabilité, un prix modifié en douce ouvre la porte au vol.
+    Le formulaire (ui/formulaire_article.py) réserve déjà ces deux champs
+    au responsable pour un article existant ; ceci est la seconde ligne de
+    défense, côté logique métier.
+    """
     if not nom.strip():
         raise ValueError("Le nom de l'article est obligatoire.")
     if prix_vente <= 0:
         raise ValueError("Le prix de vente doit être supérieur à 0.")
 
-    Database.execute(
+    with Database.transaction() as cur:
+        cur.execute("SELECT prix_achat, prix_vente FROM articles WHERE id = %s FOR UPDATE", (article_id,))
+        article_actuel = cur.fetchone()
+        if article_actuel is None:
+            raise ValueError("Article introuvable.")
+
+        cur.execute(
+            """
+            UPDATE articles
+            SET nom = %s, categorie = %s, unite = %s,
+                prix_achat = %s, prix_vente = %s, seuil_alerte = %s, fournisseur_id = %s
+            WHERE id = %s
+            """,
+            (nom.strip(), categorie, unite, prix_achat, prix_vente, seuil_alerte, fournisseur_id, article_id),
+        )
+
+        prix_ont_change = (
+            float(article_actuel["prix_achat"]) != float(prix_achat)
+            or float(article_actuel["prix_vente"]) != float(prix_vente)
+        )
+        if prix_ont_change:
+            cur.execute(
+                """
+                INSERT INTO historique_prix_articles
+                    (article_id, utilisateur_id, ancien_prix_achat, nouveau_prix_achat,
+                     ancien_prix_vente, nouveau_prix_vente)
+                VALUES (%s, %s, %s, %s, %s, %s)
+                """,
+                (article_id, utilisateur_id, article_actuel["prix_achat"], prix_achat,
+                 article_actuel["prix_vente"], prix_vente),
+            )
+
+
+def derniere_modification_prix(article_id):
+    """Dernier changement de prix enregistré pour cet article, ou None."""
+    return Database.fetch_one(
         """
-        UPDATE articles
-        SET nom = %s, categorie = %s, unite = %s,
-            prix_achat = %s, prix_vente = %s, seuil_alerte = %s, fournisseur_id = %s
-        WHERE id = %s
+        SELECT h.ancien_prix_achat, h.nouveau_prix_achat, h.ancien_prix_vente,
+               h.nouveau_prix_vente, h.date_modification, u.nom_complet
+        FROM historique_prix_articles h
+        JOIN utilisateurs u ON u.id = h.utilisateur_id
+        WHERE h.article_id = %s
+        ORDER BY h.date_modification DESC
+        LIMIT 1
         """,
-        (nom.strip(), categorie, unite, prix_achat, prix_vente, seuil_alerte, fournisseur_id, article_id),
+        (article_id,),
     )
 
 

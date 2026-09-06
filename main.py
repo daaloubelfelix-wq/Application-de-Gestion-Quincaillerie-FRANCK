@@ -29,7 +29,9 @@ class FenetrePrincipale(QMainWindow):
     clients, et le responsable tient la caisse qui encaisse le paiement.
     - agent_stock : Tableau de bord, Articles, Fournisseurs
     - agent_comptabilite : Tableau de bord, Comptabilité, Nouvelle commande
-    - responsable : Tableau de bord consolidé, Caisse, Rapports, Fournisseurs, Utilisateurs
+    - responsable : Tableau de bord consolidé, Articles (tous sites), Caisse,
+      Rapports, Fournisseurs, Utilisateurs — seul le responsable peut changer
+      le prix d'un article existant (voir ui/formulaire_article.py)
     """
 
     def __init__(self, utilisateur):
@@ -45,6 +47,7 @@ class FenetrePrincipale(QMainWindow):
 
         if utilisateur["role"] == "responsable":
             onglets.addTab(TableauBordResponsable(utilisateur), "Tableau de bord")
+            onglets.addTab(GestionArticles(utilisateur), "Articles")
             onglets.addTab(Caisse(utilisateur), "Caisse")
             onglets.addTab(Rapports(utilisateur), "Rapports")
             onglets.addTab(GestionFournisseurs(utilisateur), "Fournisseurs")

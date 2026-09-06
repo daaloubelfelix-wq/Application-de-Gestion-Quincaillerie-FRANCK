@@ -83,6 +83,27 @@ CREATE INDEX idx_mouvements_article ON mouvements_stock(article_id);
 CREATE INDEX idx_mouvements_date ON mouvements_stock(date_mouvement);
 
 -- ------------------------------------------------------------
+-- Table : historique_prix_articles
+-- Traçabilité des changements de prix (achat/vente) sur un article
+-- existant : qui a changé quoi, quand, de quel montant à quel montant.
+-- Sans cela, un prix modifié en douce ouvre la porte au vol — voir
+-- modules/articles.py (modifier_article) et ui/formulaire_article.py
+-- (qui réserve la modification des prix au responsable).
+-- ------------------------------------------------------------
+CREATE TABLE historique_prix_articles (
+    id SERIAL PRIMARY KEY,
+    article_id INTEGER NOT NULL REFERENCES articles(id) ON DELETE CASCADE,
+    utilisateur_id INTEGER NOT NULL REFERENCES utilisateurs(id),
+    ancien_prix_achat NUMERIC(12,2) NOT NULL,
+    nouveau_prix_achat NUMERIC(12,2) NOT NULL,
+    ancien_prix_vente NUMERIC(12,2) NOT NULL,
+    nouveau_prix_vente NUMERIC(12,2) NOT NULL,
+    date_modification TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_historique_prix_article ON historique_prix_articles(article_id);
+
+-- ------------------------------------------------------------
 -- Table : ventes
 -- Une vente peut être imprimée en ticket rapide ou en facture détaillée.
 -- numero_facture n'est rempli que pour les factures détaillées.
