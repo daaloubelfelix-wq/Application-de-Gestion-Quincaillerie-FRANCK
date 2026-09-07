@@ -38,39 +38,124 @@ première installation complète.
 
 ## Avant de commencer
 
-- Un poste (celui qui sera le serveur) avec Python 3.10 ou plus récent,
-  pour y installer PostgreSQL.
-- L'exécutable de l'application déjà fabriqué (voir README, ou demander à
-  la personne qui a suivi ce projet de le fournir directement — c'est plus
-  simple que de refaire l'étape de fabrication sur place).
+- Sur place, il ne faut **pas** installer Python : les deux programmes
+  nécessaires sont déjà fabriqués à l'avance (`QuincaillerieFranck.exe` et
+  `CreerCompteResponsable.exe`, voir README ou demander à la personne qui a
+  suivi ce projet de les fournir).
+- Le poste choisi comme serveur (voir « Vue d'ensemble » ci-dessus) doit
+  simplement avoir **PostgreSQL** installé dessus — rien d'autre de
+  spécial. Ce n'est pas une machine à part : elle sert aussi normalement,
+  comme les 4 autres, une fois tout installé.
 - Les noms des 5 personnes qui utiliseront l'application et le rôle de
   chacune (responsable / agent stock / agent comptabilité), et sur quel
   site (magasin de stock ou comptoir).
 - Une imprimante ticket de caisse (thermique, en rouleau, 80mm) branchée
   sur le poste comptabilité — c'est là que le reçu final s'imprime. Si
   l'imprimante réelle fait 58mm plutôt que 80mm, il faut ajuster
-  `LARGEUR_TICKET_MM` dans `modules/facturation.py`.
+  `LARGEUR_TICKET_MM` dans `modules/facturation.py` (et refabriquer le
+  `.exe`, avant de partir sur place).
 
 ## Étape 1 — Préparer le poste serveur
 
-1. Installer PostgreSQL sur ce poste (installateur officiel Windows/Mac).
-2. Ouvrir une invite de commande dans le dossier du projet et exécuter :
-   ```
-   psql -U votre_utilisateur -d votre_base -f creation_base_donnees.sql
-   ```
-3. Noter l'adresse IP locale de ce poste (sur Windows : `ipconfig`, ligne
-   « Adresse IPv4 » — ressemble à `192.168.1.xx`). **Cette adresse doit
-   rester fixe** : dans les réglages du routeur, réserver cette adresse à
-   ce poste (« réservation DHCP » ou « IP statique ») pour qu'elle ne
-   change pas après un redémarrage — sinon les 4 autres postes perdront la
-   connexion au serveur.
-4. Copier `config.example.ini` vers `config.ini` (même dossier que
-   l'exécutable) et renseigner :
-   - `host` : l'adresse IP notée à l'étape 3
-   - `user` / `password` : ceux créés à l'installation de PostgreSQL
-5. Lancer `creer_compte_responsable.py` (ou demander à la personne qui a
-   suivi ce projet de le faire à distance) pour créer le tout premier
-   compte, celui du responsable.
+### 1.1 — Installer PostgreSQL
+
+Installateur officiel Windows (`postgresql.org/download/windows`).
+Pendant l'installation, un mot de passe est demandé pour l'utilisateur
+`postgres` : **notez-le**, il sera réutilisé à chaque étape suivante.
+Laisser le port par défaut (5432).
+
+### 1.2 — Créer la base de données
+
+Ouvrir « SQL Shell (psql) » (installé avec PostgreSQL, dans le menu
+Démarrer). Entrée à chaque question sauf pour le mot de passe (celui
+noté en 1.1). Une fois connecté (invite `postgres=#`) :
+```
+CREATE DATABASE quincaillerie_franck;
+\c quincaillerie_franck
+\i 'CHEMIN_COMPLET_VERS\creation_base_donnees.sql'
+```
+(remplacer `CHEMIN_COMPLET_VERS` par l'emplacement réel du fichier, par
+exemple `C:\QuincaillerieFranck\creation_base_donnees.sql`)
+
+### 1.3 — Noter l'adresse IP locale de ce poste, et la fixer
+
+Invite de commande : `ipconfig`, ligne « Adresse IPv4 » — ressemble à
+`192.168.1.xx`. **Cette adresse doit rester fixe** : dans les réglages du
+routeur (box Internet), réserver cette adresse à ce poste (« réservation
+DHCP » ou « IP statique », en utilisant son adresse physique — ligne
+« Adresse physique » de `ipconfig /all`) pour qu'elle ne change pas après
+un redémarrage — sinon les 4 autres postes perdront la connexion au
+serveur. Si cette partie du routeur n'est pas claire, mieux vaut la faire
+avec quelqu'un qui connaît les réglages de la box.
+
+### 1.4 — Autoriser les connexions venant des 4 autres postes
+
+Par défaut, PostgreSQL n'accepte que les connexions venant de
+l'ordinateur lui-même. Sans cette étape, les 4 autres postes ne pourront
+jamais se connecter, même avec la bonne adresse IP dans `config.ini`.
+
+**a) Dans PostgreSQL** — dossier d'installation, sous-dossier `data`
+(exemple : `C:\Program Files\PostgreSQL\18\data`) :
+
+- Ouvrir `postgresql.conf` avec le Bloc-notes. Chercher la ligne
+  `#listen_addresses = 'localhost'` et la remplacer par (sans le `#`) :
+  ```
+  listen_addresses = '*'
+  ```
+- Ouvrir `pg_hba.conf`. Ajouter tout en bas une ligne (adapter le début
+  de l'adresse à celle notée en 1.3 — si elle commence par `192.168.1.`,
+  garder tel quel) :
+  ```
+  host    all             all             192.168.1.0/24          scram-sha-256
+  ```
+- Enregistrer les deux fichiers, puis redémarrer le service : `Démarrer`
+  → `services.msc` → Entrée → trouver `postgresql-x64-18` dans la liste →
+  clic droit → **Redémarrer**.
+
+**b) Dans le pare-feu Windows** — sinon Windows bloque quand même la
+connexion, même si PostgreSQL l'accepterait :
+
+- `Démarrer` → « Pare-feu Windows Defender avec fonctions avancées de
+  sécurité » → Entrée.
+- **Règles de trafic entrant** → **Nouvelle règle** → Type **Port** →
+  Suivant.
+- **TCP**, port spécifique `5432` → Suivant.
+- **Autoriser la connexion** → Suivant → cocher les trois profils
+  (Domaine, Privé, Public) → Suivant.
+- Nom : `PostgreSQL Quincaillerie` → Terminer.
+
+### 1.5 — Préparer `config.ini`
+
+Copier `config.example.ini` vers `config.ini` (même dossier que
+`QuincaillerieFranck.exe`) et renseigner :
+```
+host = 192.168.1.xx     ← l'adresse notée en 1.3 (jamais "localhost")
+port = 5432
+dbname = quincaillerie_franck
+user = postgres
+password = (le mot de passe noté en 1.1)
+```
+Ce même fichier sera copié tel quel sur les 4 autres postes à l'étape 2.
+
+**Gardez une copie de ce fichier ailleurs qu'à cet endroit** (clé USB, ou
+envoyé par e-mail/WhatsApp à vous-même) — s'il est effacé par erreur en
+recopiant un dossier plus tard, il faudra sinon le retaper entièrement.
+
+### 1.6 — Créer le compte responsable
+
+Double-cliquer sur `CreerCompteResponsable.exe` (dans le même dossier que
+`QuincaillerieFranck.exe`, avec `config.ini` déjà en place). Une fenêtre
+noire pose 3 questions (nom complet, identifiant, mot de passe) —
+répondre et valider avec Entrée à chaque fois. Une fois « Compte
+responsable créé avec succès » affiché, fermer la fenêtre.
+
+### 1.7 — Vérifier que le serveur fonctionne, avant d'aller plus loin
+
+Lancer `QuincaillerieFranck.exe` **sur ce poste** et se connecter avec le
+compte créé en 1.6. Si l'écran de connexion ne s'affiche pas ou qu'un
+message « Impossible de joindre le serveur » apparaît, reprendre l'étape
+1.4 avant de continuer — inutile d'installer les 4 autres postes tant que
+le serveur lui-même n'est pas confirmé.
 
 ## Étape 2 — Installer l'application sur les 5 postes
 
@@ -79,7 +164,7 @@ Sur **chacun des 5 postes**, y compris le serveur :
 1. Copier deux fichiers dans un même dossier (par exemple sur le Bureau) :
    - `QuincaillerieFranck.exe` (l'exécutable)
    - `config.ini` — **le même sur les 5 postes**, avec l'adresse IP du
-     poste serveur (celle notée à l'étape 1). C'est le seul fichier à
+     poste serveur (celle notée à l'étape 1.3). C'est le seul fichier à
      dupliquer partout.
 2. Double-cliquer sur `QuincaillerieFranck.exe`. L'écran de connexion doit
    s'afficher.
@@ -139,7 +224,10 @@ et ne nécessite rien de plus sur les 4 autres postes.
 
 - **« Impossible de joindre le serveur »** → le poste serveur est-il
   allumé et connecté au réseau ? L'adresse IP dans `config.ini` est-elle
-  toujours la bonne (voir étape 1.3 sur l'adresse fixe) ?
+  toujours la bonne (voir étape 1.3 sur l'adresse fixe) ? Cela fonctionne
+  depuis le poste serveur lui-même mais pas depuis un autre poste →
+  revoir l'étape 1.4 (pare-feu et `pg_hba.conf`), c'est presque toujours
+  la cause.
 - **Compte verrouillé après plusieurs mauvais mots de passe** → le
   responsable peut le réactiver depuis l'onglet Utilisateurs.
 - **Mot de passe oublié** → pas d'auto-réinitialisation pour l'instant ;
