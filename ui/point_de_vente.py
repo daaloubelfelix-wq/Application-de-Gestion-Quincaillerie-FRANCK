@@ -16,7 +16,7 @@ from datetime import datetime
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton, QLabel,
     QListWidget, QListWidgetItem, QMessageBox, QComboBox, QFrame, QSpinBox,
-    QSizePolicy
+    QSizePolicy, QScrollArea
 )
 from PyQt6.QtCore import Qt
 
@@ -37,6 +37,12 @@ class PointDeVente(QWidget):
     # Construction de l'interface
     # ------------------------------------------------------------
     def _construire_interface(self):
+        # Tout le contenu est placé dans une zone qui défile verticalement :
+        # sur un écran ou une fenêtre trop petite pour tout afficher d'un
+        # coup, on obtient une barre de défilement plutôt qu'un contenu
+        # comprimé/écrasé (texte qui se chevauche) — voir le récapitulatif
+        # des totaux, particulièrement sensible à ce problème.
+        contenu = QWidget()
         layout = QVBoxLayout()
         layout.setContentsMargins(24, 24, 24, 24)
         layout.setSpacing(12)
@@ -121,7 +127,17 @@ class PointDeVente(QWidget):
         actions.addWidget(bouton_facture)
         layout.addLayout(actions)
 
-        self.setLayout(layout)
+        contenu.setLayout(layout)
+
+        zone_defilante = QScrollArea()
+        zone_defilante.setWidgetResizable(True)
+        zone_defilante.setFrameShape(QFrame.Shape.NoFrame)
+        zone_defilante.setWidget(contenu)
+
+        layout_ecran = QVBoxLayout()
+        layout_ecran.setContentsMargins(0, 0, 0, 0)
+        layout_ecran.addWidget(zone_defilante)
+        self.setLayout(layout_ecran)
 
     def _construire_zone_totaux(self):
         # Construit chaque ligne à la main (plutôt qu'un QFormLayout) pour
