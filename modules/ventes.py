@@ -202,15 +202,18 @@ def annuler_vente(vente_id, utilisateur):
 def rechercher_articles(site_id, terme_recherche):
     """
     Recherche d'articles pour l'enregistrement d'une vente, limitée au
-    site de l'utilisateur. Un article créé par l'agent stock sans prix
-    de vente (prix_vente = 0, en attente que le responsable le fixe)
-    n'apparaît pas ici — pas de vente à 0 FCFA par erreur.
+    site de l'utilisateur. Le prix catalogue (prix_vente) n'est qu'une
+    indication : le prix réel de chaque vente est celui négocié par le
+    responsable avec le client et inscrit sur le facturier papier, saisi
+    ligne par ligne dans ui/point_de_vente.py — un article sans prix
+    catalogue (créé par l'agent stock, en attente que le responsable le
+    fixe) reste donc vendable.
     """
     return Database.fetch_all(
         """
         SELECT id, nom, prix_vente, quantite_stock
         FROM articles
-        WHERE site_id = %s AND nom ILIKE %s AND prix_vente > 0
+        WHERE site_id = %s AND nom ILIKE %s
         ORDER BY nom
         LIMIT 20
         """,

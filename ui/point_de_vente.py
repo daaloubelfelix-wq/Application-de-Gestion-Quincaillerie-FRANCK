@@ -45,8 +45,9 @@ class PointDeVente(QWidget):
         layout.addWidget(titre)
 
         sous_titre = QLabel(
-            "Le client a déjà payé à la caisse. Saisissez ici ce qui est indiqué "
-            "sur le facturier papier, puis enregistrez."
+            "Le prix est celui négocié par le responsable avec le client et "
+            "inscrit sur le facturier papier — saisissez-le tel quel, il peut "
+            "différer du prix catalogue."
         )
         sous_titre.setObjectName("texteAttenue")
         sous_titre.setWordWrap(True)
@@ -61,11 +62,11 @@ class PointDeVente(QWidget):
         # Résultats de recherche
         self.liste_resultats = QListWidget()
         self.liste_resultats.setMaximumHeight(120)
-        self.liste_resultats.itemDoubleClicked.connect(self._ajouter_au_panier)
+        self.liste_resultats.currentItemChanged.connect(self._sur_selection_resultat)
         layout.addWidget(self.liste_resultats)
 
-        # Quantité + ajout au panier — on choisit la quantité une seule
-        # fois, pas besoin de cliquer plusieurs fois pour une grande quantité.
+        # Quantité + prix (celui du facturier papier, pas forcément le prix
+        # catalogue) + ajout au panier.
         ligne_quantite = QHBoxLayout()
         ligne_quantite.addWidget(QLabel("Quantité :"))
         self.champ_quantite = QSpinBox()
@@ -73,6 +74,12 @@ class PointDeVente(QWidget):
         self.champ_quantite.setValue(0)
         self.champ_quantite.setSpecialValueText(" ")
         ligne_quantite.addWidget(self.champ_quantite)
+        ligne_quantite.addWidget(QLabel("Prix unitaire (FCFA) :"))
+        self.champ_prix = QSpinBox()
+        self.champ_prix.setRange(0, 999_999_999)
+        self.champ_prix.setValue(0)
+        self.champ_prix.setSpecialValueText(" ")
+        ligne_quantite.addWidget(self.champ_prix)
         bouton_ajouter = QPushButton("Ajouter au panier")
         bouton_ajouter.clicked.connect(self._ajouter_selection_au_panier)
         ligne_quantite.addWidget(bouton_ajouter)
@@ -139,10 +146,17 @@ class PointDeVente(QWidget):
         if len(texte.strip()) < 2:
             return
         for article in rechercher_articles(self.utilisateur["site_id"], texte.strip()):
-            libelle = f"{article['nom']} — {article['prix_vente']:.0f} FCFA ({article['quantite_stock']} en stock)"
+            prix_indicatif = f"{article['prix_vente']:.0f} FCFA (catalogue)" if article["prix_vente"] > 0 else "prix à saisir"
+            libelle = f"{article['nom']} — {prix_indicatif} ({article['quantite_stock']} en stock)"
             item = QListWidgetItem(libelle)
             item.setData(Qt.ItemDataRole.UserRole, article)
             self.liste_resultats.addItem(item)
+
+    def _sur_selection_resultat(self, item, item_precedent=None):
+        if item is None:
+            return
+        article = item.data(Qt.ItemDataRole.UserRole)
+        self.champ_prix.setValue(int(article["prix_vente"]))
 
     def _ajouter_selection_au_panier(self):
         item = self.liste_resultats.currentItem()
@@ -157,16 +171,25 @@ class PointDeVente(QWidget):
     def _ajouter_au_panier(self, item):
         article = item.data(Qt.ItemDataRole.UserRole)
         quantite_demandee = self.champ_quantite.value()
+        prix_saisi = self.champ_prix.value()
 
         if quantite_demandee <= 0:
             QMessageBox.information(self, "Quantité manquante", "Indiquez d'abord une quantité.")
+            return
+
+        if prix_saisi <= 0:
+            QMessageBox.information(
+                self, "Prix manquant",
+                "Indiquez le prix inscrit sur le facturier papier avant d'ajouter l'article."
+            )
             return
 
         if article["quantite_stock"] <= 0:
             QMessageBox.warning(self, "Rupture de stock", f"'{article['nom']}' n'est plus en stock.")
             return
 
-        # Si déjà dans le panier, on augmente juste la quantité
+        # Si déjà dans le panier, on augmente juste la quantité (même ligne
+        # du facturier, donc même prix — celui déjà enregistré est conservé).
         for ligne in self.panier:
             if ligne["article_id"] == article["id"]:
                 nouvelle_quantite = ligne["quantite"] + quantite_demandee
@@ -186,11 +209,12 @@ class PointDeVente(QWidget):
             "article_id": article["id"],
             "nom": article["nom"],
             "quantite": quantite_demandee,
-            "prix_unitaire": float(article["prix_vente"]),
+            "prix_unitaire": float(prix_saisi),
             "stock_disponible": article["quantite_stock"],
         })
         self._rafraichir_panier()
         self.champ_quantite.setValue(0)
+        self.champ_prix.setValue(0)
 
     def _retirer_du_panier(self):
         index = self.liste_panier.currentRow()
