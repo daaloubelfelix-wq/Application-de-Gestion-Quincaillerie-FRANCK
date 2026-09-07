@@ -11,11 +11,11 @@ set -euo pipefail
 python3 -m venv .venv_empaquetage
 source .venv_empaquetage/bin/activate
 
-pip install --upgrade pip
+python3 -m pip install --upgrade pip
 pip install -r requirements.txt
 pip install -r requirements-empaquetage.txt
 
-pyinstaller --noconfirm --windowed --onefile --name QuincaillerieFranck --add-data "ui/style.qss:ui" main.py
+pyinstaller --noconfirm --windowed --onefile --name QuincaillerieFranck --add-data "ui/style.qss:ui" --collect-submodules reportlab.graphics.barcode main.py
 pyinstaller --noconfirm --onefile --name CreerCompteResponsable creer_compte_responsable.py
 
 echo ""
