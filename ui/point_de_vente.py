@@ -14,7 +14,7 @@ import os
 from datetime import datetime
 
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QFormLayout, QLineEdit, QPushButton, QLabel,
+    QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton, QLabel,
     QListWidget, QListWidgetItem, QMessageBox, QComboBox, QFrame, QSpinBox
 )
 from PyQt6.QtCore import Qt
@@ -118,12 +118,12 @@ class PointDeVente(QWidget):
         self.setLayout(layout)
 
     def _construire_zone_totaux(self):
-        formulaire = QFormLayout()
-        formulaire.setLabelAlignment(Qt.AlignmentFlag.AlignLeft)
-        formulaire.setFormAlignment(Qt.AlignmentFlag.AlignLeft)
-        formulaire.setHorizontalSpacing(18)
-        formulaire.setVerticalSpacing(12)
-        formulaire.setContentsMargins(4, 4, 4, 4)
+        # Construit chaque ligne à la main (plutôt qu'un QFormLayout) pour
+        # garantir un espacement vertical net et fiable entre les lignes,
+        # quel que soit le style visuel du système d'exploitation.
+        colonne = QVBoxLayout()
+        colonne.setContentsMargins(4, 8, 4, 8)
+        colonne.setSpacing(16)
 
         self.label_sous_total = QLabel("0 FCFA")
         self.label_tva = QLabel("0 FCFA")
@@ -134,11 +134,20 @@ class PointDeVente(QWidget):
         for code, libelle in MODES_PAIEMENT:
             self.selecteur_mode_paiement.addItem(libelle, code)
 
-        formulaire.addRow("Sous-total HT :", self.label_sous_total)
-        formulaire.addRow(f"TVA ({TAUX_TVA}%) :", self.label_tva)
-        formulaire.addRow("Total payé par le client :", self.label_total)
-        formulaire.addRow("Mode de paiement (indiqué sur le facturier) :", self.selecteur_mode_paiement)
-        self.cadre_totaux.setLayout(formulaire)
+        def ligne(texte_etiquette, widget_valeur):
+            rangee = QHBoxLayout()
+            rangee.setSpacing(18)
+            etiquette = QLabel(texte_etiquette)
+            rangee.addWidget(etiquette)
+            rangee.addStretch()
+            rangee.addWidget(widget_valeur)
+            colonne.addLayout(rangee)
+
+        ligne("Sous-total HT :", self.label_sous_total)
+        ligne(f"TVA ({TAUX_TVA}%) :", self.label_tva)
+        ligne("Total payé par le client :", self.label_total)
+        ligne("Mode de paiement (indiqué sur le facturier) :", self.selecteur_mode_paiement)
+        self.cadre_totaux.setLayout(colonne)
 
     # ------------------------------------------------------------
     # Recherche et gestion du panier
