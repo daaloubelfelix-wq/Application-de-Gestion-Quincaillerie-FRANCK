@@ -15,7 +15,8 @@ from datetime import datetime
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton, QLabel,
-    QListWidget, QListWidgetItem, QMessageBox, QComboBox, QFrame, QSpinBox
+    QListWidget, QListWidgetItem, QMessageBox, QComboBox, QFrame, QSpinBox,
+    QSizePolicy
 )
 from PyQt6.QtCore import Qt
 
@@ -92,6 +93,7 @@ class PointDeVente(QWidget):
         layout.addWidget(titre_panier)
 
         self.liste_panier = QListWidget()
+        self.liste_panier.setMinimumHeight(60)
         layout.addWidget(self.liste_panier)
 
         bouton_retirer = QPushButton("Retirer l'article sélectionné")
@@ -99,9 +101,13 @@ class PointDeVente(QWidget):
         bouton_retirer.clicked.connect(self._retirer_du_panier)
         layout.addWidget(bouton_retirer)
 
-        # Récapitulatif des totaux + mode de paiement
+        # Récapitulatif des totaux + mode de paiement — hauteur fixée à sa
+        # taille naturelle : si la fenêtre est trop petite, c'est la liste
+        # du panier (au-dessus, extensible) qui doit se comprimer en
+        # premier, jamais ce bloc, sinon le texte des lignes se chevauche.
         self.cadre_totaux = QFrame()
         self.cadre_totaux.setObjectName("carteTotaux")
+        self.cadre_totaux.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
         self._construire_zone_totaux()
         layout.addWidget(self.cadre_totaux)
 
