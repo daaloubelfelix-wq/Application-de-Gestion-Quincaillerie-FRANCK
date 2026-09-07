@@ -122,6 +122,8 @@ class PointDeVente(QWidget):
         formulaire.setLabelAlignment(Qt.AlignmentFlag.AlignLeft)
         formulaire.setFormAlignment(Qt.AlignmentFlag.AlignLeft)
         formulaire.setHorizontalSpacing(18)
+        formulaire.setVerticalSpacing(12)
+        formulaire.setContentsMargins(4, 4, 4, 4)
 
         self.label_sous_total = QLabel("0 FCFA")
         self.label_tva = QLabel("0 FCFA")
