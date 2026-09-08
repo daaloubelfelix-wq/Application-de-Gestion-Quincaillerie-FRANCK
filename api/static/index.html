@@ -1,0 +1,495 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Quincaillerie Franck — Supervision</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Source+Sans+3:wght@400;500;600;700&display=swap');
+
+  :root{
+    --paper:#efe8d8; --paper-raised:#fffdf6; --ink:#211d16; --ink-soft:#6b6357;
+    --line:#d8cfb7; --steel:#152c4d; --steel-soft:#e1e6ee;
+    --amber:#c1791a; --amber-soft:#f2e0be;
+    --rust:#9c3d1f; --rust-soft:#f0ddd0;
+    --moss:#3f6b46; --moss-soft:#dde8dd;
+    --font-display:'Oswald', -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-body:'Source Sans 3', -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --paper:#191713; --paper-raised:#242019; --ink:#efe8d8; --ink-soft:#a89f8d;
+      --line:#3a3327; --steel:#7d9bc4; --steel-soft:#1b2636;
+      --amber:#e3a244; --amber-soft:#332612;
+      --rust:#dd8258; --rust-soft:#331d14;
+      --moss:#84bb88; --moss-soft:#1e2b1f;
+    }
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:var(--font-body);
+    font-size:16px; line-height:1.5; padding-bottom:2rem;
+    overflow-x:hidden;
+  }
+  [hidden]{display:none !important;}
+  h1,h2{margin:0; font-family:var(--font-display); font-weight:600; letter-spacing:.01em;}
+  p{margin:0;}
+
+  /* --- Connexion --- */
+  #ecran-connexion{
+    min-height:100vh; display:flex; flex-direction:column; justify-content:center;
+    align-items:center; padding:2rem 1.25rem; position:relative; overflow:hidden;
+  }
+  .fond-outils{position:absolute; inset:0; z-index:0; color:var(--steel); opacity:.12;}
+  @media (prefers-color-scheme: dark){ .fond-outils{opacity:.16;} }
+
+  .plaque-enseigne{
+    text-align:center; margin-bottom:1.8rem; position:relative; z-index:1;
+  }
+  .emblème{
+    width:64px; height:64px; margin:0 auto .9rem; border-radius:50%;
+    background:var(--paper-raised); border:1px solid var(--line);
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 1px 0 var(--line);
+  }
+  .emblème svg{width:34px; height:34px; color:var(--steel);}
+  .plaque-enseigne h1{
+    font-size:2rem; line-height:1.05; color:var(--ink); text-transform:uppercase;
+  }
+
+  .carte-connexion{
+    background:var(--paper-raised); border:1px solid var(--line); border-radius:4px;
+    padding:2rem 1.6rem 1.7rem; width:100%; max-width:22rem; position:relative; z-index:1;
+    box-shadow:0 1px 0 var(--line), 0 18px 30px -22px rgba(0,0,0,.35);
+  }
+  .carte-connexion::before, .carte-connexion::after{
+    content:""; position:absolute; width:7px; height:7px; border-radius:50%;
+    background:var(--line); top:10px;
+  }
+  .carte-connexion::before{left:10px;} .carte-connexion::after{right:10px;}
+  label{display:block; font-size:.74rem; font-weight:600; letter-spacing:.04em; color:var(--ink-soft); margin:1rem 0 .35rem;}
+  input, select{
+    width:100%; padding:.7rem .8rem; border:1px solid var(--line); border-radius:3px;
+    background:var(--paper); color:var(--ink); font-size:1rem; font-family:var(--font-body);
+  }
+  input:focus, select:focus, button:focus-visible{
+    outline:2px solid var(--steel); outline-offset:1px;
+  }
+  button{
+    font-family:var(--font-body); font-size:.95rem; font-weight:700; border:none; border-radius:3px;
+    padding:.75rem 1rem; cursor:pointer; letter-spacing:.01em;
+  }
+  .bouton-principal{background:var(--amber); color:#fff; width:100%; margin-top:1.4rem; transition:filter .15s;}
+  .bouton-principal:hover{filter:brightness(1.06);}
+  .bouton-principal:disabled{opacity:.6; cursor:default;}
+  .bouton-secondaire{background:transparent; color:var(--ink-soft); border:1px solid var(--line);}
+  .message-erreur{
+    background:var(--rust-soft); color:var(--rust); font-size:.85rem; font-weight:500;
+    padding:.6rem .8rem; border-radius:3px; margin-top:1rem; border-left:3px solid var(--rust);
+  }
+  .champ-avec-icone{position:relative;}
+  .champ-avec-icone input{padding-right:2.6rem;}
+  .bouton-oeil{
+    position:absolute; right:.35rem; top:50%; transform:translateY(-50%);
+    width:2.1rem; height:2.1rem; padding:0; border-radius:3px; background:transparent;
+    color:var(--ink-soft); display:flex; align-items:center; justify-content:center;
+  }
+  .bouton-oeil:hover{color:var(--ink);}
+  .bouton-oeil svg{width:19px; height:19px;}
+  .lien-aide{
+    text-align:center; font-size:.78rem; color:var(--ink-soft); margin-top:1.1rem;
+  }
+
+  /* --- Tableau de bord --- */
+  #ecran-dashboard{max-width:34rem; margin:0 auto; padding:0 1.1rem 2.5rem;}
+  header.entete{
+    display:flex; justify-content:space-between; align-items:flex-end; gap:.6rem;
+    padding:1.4rem 0 1rem; margin-bottom:1.2rem; border-bottom:3px solid var(--ink);
+  }
+  header.entete .bloc-titre{display:flex; align-items:center; gap:.7rem; min-width:0;}
+  header.entete .bloc-titre > div{min-width:0;}
+  header.entete .emblème-mini{
+    width:34px; height:34px; border-radius:50%; background:var(--paper-raised); border:1px solid var(--line);
+    display:flex; align-items:center; justify-content:center; flex:0 0 auto;
+  }
+  header.entete .emblème-mini svg{width:18px; height:18px; color:var(--steel);}
+  header.entete h1{font-size:1.25rem; text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  header.entete p{font-size:.76rem; color:var(--ink-soft); margin-top:.2rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  header.entete .bouton-secondaire{flex-shrink:0;}
+
+  .selecteur-site{display:flex; gap:.5rem; overflow-x:auto; padding-bottom:.4rem; margin-bottom:1.3rem;}
+  .puce-site{
+    flex:0 0 auto; padding:.42rem 1rem; border-radius:3px; border:1px solid var(--line);
+    background:var(--paper-raised); color:var(--ink-soft); font-size:.82rem; font-weight:600; white-space:nowrap;
+    font-family:var(--font-body); cursor:pointer; position:relative;
+  }
+  .puce-site::before{content:"◆ "; font-size:.6rem; vertical-align:middle; opacity:.5;}
+  .puce-site.actif{background:var(--steel); border-color:var(--steel); color:#fff;}
+  .puce-site.actif::before{opacity:.9;}
+
+  .grille-cartes{display:grid; grid-template-columns:1fr 1fr; gap:.7rem; margin-bottom:1.2rem;}
+  .grille-cartes.trois{grid-template-columns:1fr 1fr 1fr;}
+  .carte-stat{
+    background:var(--paper-raised); border:1px solid var(--line); border-radius:3px;
+    padding:.85rem .9rem .8rem; border-left:4px solid var(--line); position:relative;
+  }
+  .carte-stat .titre{font-size:.7rem; color:var(--ink-soft); margin-bottom:.35rem; font-weight:600; letter-spacing:.02em; text-transform:uppercase;}
+  .carte-stat .valeur{font-size:1.2rem; font-weight:700; font-variant-numeric:tabular-nums; font-family:var(--font-display);}
+  .carte-stat.alerte{border-left-color:var(--rust);}
+  .carte-stat.alerte .valeur{color:var(--rust);}
+  .carte-stat.positif{border-left-color:var(--moss);}
+  .carte-stat.positif .valeur{color:var(--moss);}
+
+  .liste{background:var(--paper-raised); border:1px solid var(--line); border-radius:3px; overflow:hidden;}
+  .ligne-liste{
+    display:flex; justify-content:space-between; align-items:baseline; gap:.8rem; padding:.7rem .9rem;
+    border-bottom:1px solid var(--line); font-size:.88rem;
+  }
+  .ligne-liste:last-child{border-bottom:none;}
+  .ligne-liste .principal{font-weight:600;}
+  .ligne-liste .accessoire{color:var(--ink-soft); font-size:.76rem; margin-top:.1rem;}
+  .ligne-liste .droite{
+    text-align:right; white-space:nowrap; font-weight:600; font-variant-numeric:tabular-nums;
+    font-family:var(--font-display); flex-shrink:0;
+  }
+  .vide{padding:1.1rem; text-align:center; color:var(--ink-soft); font-size:.85rem;}
+
+  .onglets-periode{display:flex; gap:.4rem; margin-bottom:.9rem;}
+  .onglets-periode button{
+    flex:1; min-width:0; background:var(--paper-raised); color:var(--ink-soft); border:1px solid var(--line);
+    font-size:.74rem; font-weight:600; padding:.55rem .25rem; font-family:var(--font-body); border-radius:3px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .onglets-periode button.actif{background:var(--amber); color:#fff; border-color:var(--amber);}
+
+  .pied{display:flex; justify-content:space-between; align-items:center; gap:.6rem; margin-top:1.6rem; padding-top:1rem; border-top:1px dashed var(--line);}
+  .horodatage{font-size:.72rem; color:var(--ink-soft); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .pied .bouton-secondaire{flex-shrink:0;}
+</style>
+</head>
+<body>
+
+<div id="ecran-connexion">
+  <svg class="fond-outils" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <defs>
+      <pattern id="motif-outils" width="110" height="110" patternUnits="userSpaceOnUse" patternTransform="rotate(6)">
+        <g fill="currentColor">
+          <g transform="translate(8,12) rotate(-10)">
+            <rect x="0" y="0" width="24" height="10" rx="2"/>
+            <rect x="9" y="8" width="6" height="32" rx="2"/>
+          </g>
+          <g transform="translate(70,8) rotate(25)">
+            <rect x="0" y="0" width="11" height="4.5" rx="1"/>
+            <rect x="4" y="3.5" width="2.5" height="24"/>
+          </g>
+          <circle cx="24" cy="82" r="7" fill="none" stroke="currentColor" stroke-width="3"/>
+          <line x1="19" y1="82" x2="29" y2="82" stroke="currentColor" stroke-width="2.4"/>
+        </g>
+        <g fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" transform="translate(58,60) rotate(18)">
+          <path d="M0 0 h24"/>
+          <path d="M0 -6 a6 6 0 1 0 0 12 a6 6 0 1 0 0 -12"/>
+          <path d="M24 -6 a6 6 0 1 1 0 12 a6 6 0 1 1 0 -12"/>
+        </g>
+      </pattern>
+    </defs>
+    <rect width="400" height="400" fill="url(#motif-outils)"/>
+  </svg>
+  <div class="plaque-enseigne">
+    <div class="emblème">
+      <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M24 24 V19 a8 8 0 0 1 16 0 v5"/>
+        <rect x="10" y="24" width="44" height="24" rx="3"/>
+        <line x1="10" y1="36" x2="54" y2="36"/>
+        <rect x="27" y="32" width="4" height="8" rx="1" fill="currentColor" stroke="none"/>
+        <rect x="35" y="32" width="4" height="8" rx="1" fill="currentColor" stroke="none"/>
+      </svg>
+    </div>
+    <h1>Ets Quincaillerie<br>Franck</h1>
+  </div>
+  <form class="carte-connexion" id="formulaire-connexion">
+    <label for="champ-identifiant">Identifiant</label>
+    <input id="champ-identifiant" type="text" autocomplete="username" required>
+
+    <label for="champ-mot-de-passe">Mot de passe</label>
+    <div class="champ-avec-icone">
+      <input id="champ-mot-de-passe" type="password" autocomplete="current-password" required>
+      <button type="button" class="bouton-oeil" id="bouton-afficher-mdp" aria-label="Afficher le mot de passe" aria-pressed="false">
+        <svg class="icone-oeil-ouvert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M1.5 12s4-7 10.5-7 10.5 7 10.5 7-4 7-10.5 7-10.5-7-10.5-7Z"/>
+          <circle cx="12" cy="12" r="3"/>
+        </svg>
+        <svg class="icone-oeil-ferme" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" hidden>
+          <path d="M3 3l18 18"/>
+          <path d="M10.6 5.2A10.6 10.6 0 0 1 12 5c6.5 0 10.5 7 10.5 7a17.6 17.6 0 0 1-3.6 4.4M6.6 6.6C3.5 8.6 1.5 12 1.5 12s4 7 10.5 7c1.6 0 3-.3 4.2-.9"/>
+          <path d="M9.9 10a3 3 0 0 0 4.1 4.1"/>
+        </svg>
+      </button>
+    </div>
+
+    <button type="submit" class="bouton-principal" id="bouton-connexion">Se connecter</button>
+    <p class="message-erreur" id="erreur-connexion" hidden></p>
+    <p class="lien-aide">Mot de passe oublié ? Veuillez contacter le responsable.</p>
+  </form>
+</div>
+
+<div id="ecran-dashboard" hidden>
+  <header class="entete">
+    <div class="bloc-titre">
+      <div class="emblème-mini">
+        <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M24 24 V19 a8 8 0 0 1 16 0 v5"/>
+          <rect x="10" y="24" width="44" height="24" rx="3"/>
+          <line x1="10" y1="36" x2="54" y2="36"/>
+          <rect x="27" y="32" width="4" height="8" rx="1" fill="currentColor" stroke="none"/>
+          <rect x="35" y="32" width="4" height="8" rx="1" fill="currentColor" stroke="none"/>
+        </svg>
+      </div>
+      <div>
+        <h1 id="texte-bienvenue">Bonjour</h1>
+        <p>Ets Quincaillerie Franck</p>
+      </div>
+    </div>
+    <button class="bouton-secondaire" id="bouton-deconnexion">Quitter</button>
+  </header>
+
+  <div class="selecteur-site" id="selecteur-site"></div>
+
+  <section class="bloc">
+    <h2>Aujourd'hui</h2>
+    <div class="grille-cartes trois">
+      <div class="carte-stat positif"><p class="titre">Recettes</p><p class="valeur" id="valeur-recettes">—</p></div>
+      <div class="carte-stat alerte"><p class="titre">Dépenses</p><p class="valeur" id="valeur-depenses">—</p></div>
+      <div class="carte-stat"><p class="titre">Solde net</p><p class="valeur" id="valeur-solde">—</p></div>
+    </div>
+  </section>
+
+  <section class="bloc">
+    <h2>Alertes stock faible (<span id="nombre-alertes">0</span>)</h2>
+    <div class="liste" id="liste-alertes"><p class="vide">Chargement…</p></div>
+  </section>
+
+  <section class="bloc">
+    <h2>Rapports</h2>
+    <div class="onglets-periode">
+      <button data-periode="semaine" class="actif">Cette semaine</button>
+      <button data-periode="mois">Ce mois-ci</button>
+      <button data-periode="30jours">30 derniers jours</button>
+    </div>
+    <div class="grille-cartes" style="margin-bottom:1rem;">
+      <div class="carte-stat"><p class="titre">Total ventes TTC</p><p class="valeur" id="valeur-total-ventes">—</p></div>
+      <div class="carte-stat"><p class="titre">Nombre de ventes</p><p class="valeur" id="valeur-marge">—</p></div>
+    </div>
+    <div class="liste" id="liste-produits"><p class="vide">Chargement…</p></div>
+  </section>
+
+  <div class="pied">
+    <span class="horodatage" id="horodatage">—</span>
+    <button class="bouton-secondaire" id="bouton-rafraichir">Rafraîchir</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var etat = { jeton: localStorage.getItem("jeton_quincaillerie"), siteId: null, periode: "semaine" };
+
+  var ecranConnexion = document.getElementById("ecran-connexion");
+  var ecranDashboard = document.getElementById("ecran-dashboard");
+  var formulaireConnexion = document.getElementById("formulaire-connexion");
+  var erreurConnexion = document.getElementById("erreur-connexion");
+  var boutonConnexion = document.getElementById("bouton-connexion");
+
+  function formaterFCFA(valeur) {
+    var arrondi = Math.round(Number(valeur) || 0);
+    return arrondi.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") + " FCFA";
+  }
+
+  function appelApi(chemin, options) {
+    options = options || {};
+    options.headers = Object.assign({}, options.headers, { Authorization: "Bearer " + etat.jeton });
+    return fetch(chemin, options).then(function (reponse) {
+      if (reponse.status === 401) {
+        deconnecter();
+        throw new Error("Session expirée, reconnectez-vous.");
+      }
+      if (!reponse.ok) {
+        return reponse.json().then(function (corps) {
+          throw new Error((corps && corps.detail) || "Une erreur est survenue.");
+        });
+      }
+      return reponse.json();
+    });
+  }
+
+  function deconnecter() {
+    etat.jeton = null;
+    localStorage.removeItem("jeton_quincaillerie");
+    ecranDashboard.hidden = true;
+    ecranConnexion.hidden = false;
+  }
+
+  formulaireConnexion.addEventListener("submit", function (evenement) {
+    evenement.preventDefault();
+    erreurConnexion.hidden = true;
+    boutonConnexion.disabled = true;
+    boutonConnexion.textContent = "Connexion…";
+
+    fetch("/api/connexion", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        identifiant: document.getElementById("champ-identifiant").value.trim(),
+        mot_de_passe: document.getElementById("champ-mot-de-passe").value,
+      }),
+    })
+      .then(function (reponse) {
+        return reponse.json().then(function (corps) {
+          if (!reponse.ok) throw new Error(corps.detail || "Connexion impossible.");
+          return corps;
+        });
+      })
+      .then(function (corps) {
+        etat.jeton = corps.jeton;
+        localStorage.setItem("jeton_quincaillerie", corps.jeton);
+        document.getElementById("texte-bienvenue").textContent = "Bonjour, " + corps.nom_complet;
+        demarrerTableauDeBord();
+      })
+      .catch(function (erreur) {
+        erreurConnexion.textContent = erreur.message;
+        erreurConnexion.hidden = false;
+      })
+      .finally(function () {
+        boutonConnexion.disabled = false;
+        boutonConnexion.textContent = "Se connecter";
+      });
+  });
+
+  document.getElementById("bouton-deconnexion").addEventListener("click", deconnecter);
+  document.getElementById("bouton-rafraichir").addEventListener("click", chargerDonnees);
+
+  document.querySelectorAll(".onglets-periode button").forEach(function (bouton) {
+    bouton.addEventListener("click", function () {
+      document.querySelectorAll(".onglets-periode button").forEach(function (b) { b.classList.remove("actif"); });
+      bouton.classList.add("actif");
+      etat.periode = bouton.dataset.periode;
+      chargerRapports();
+    });
+  });
+
+  var boutonOeil = document.getElementById("bouton-afficher-mdp");
+  var champMdp = document.getElementById("champ-mot-de-passe");
+  boutonOeil.addEventListener("click", function () {
+    var visible = champMdp.type === "text";
+    champMdp.type = visible ? "password" : "text";
+    boutonOeil.setAttribute("aria-pressed", String(!visible));
+    boutonOeil.setAttribute("aria-label", visible ? "Afficher le mot de passe" : "Masquer le mot de passe");
+    boutonOeil.querySelector(".icone-oeil-ouvert").hidden = !visible;
+    boutonOeil.querySelector(".icone-oeil-ferme").hidden = visible;
+  });
+
+  function chargerSites() {
+    return appelApi("/api/sites").then(function (sites) {
+      var conteneur = document.getElementById("selecteur-site");
+      conteneur.innerHTML = "";
+
+      var puceTous = document.createElement("button");
+      puceTous.className = "puce-site actif";
+      puceTous.textContent = "Tous les sites";
+      puceTous.addEventListener("click", function () { choisirSite(null, puceTous); });
+      conteneur.appendChild(puceTous);
+
+      sites.forEach(function (site) {
+        var puce = document.createElement("button");
+        puce.className = "puce-site";
+        puce.textContent = site.nom;
+        puce.addEventListener("click", function () { choisirSite(site.id, puce); });
+        conteneur.appendChild(puce);
+      });
+    });
+  }
+
+  function choisirSite(siteId, puceCliquee) {
+    etat.siteId = siteId;
+    document.querySelectorAll(".puce-site").forEach(function (p) { p.classList.remove("actif"); });
+    puceCliquee.classList.add("actif");
+    chargerDonnees();
+  }
+
+  function chargerTableauDeBord() {
+    var chemin = "/api/tableau-de-bord" + (etat.siteId ? "?site_id=" + etat.siteId : "");
+    return appelApi(chemin).then(function (donnees) {
+      document.getElementById("valeur-recettes").textContent = formaterFCFA(donnees.recettes_jour);
+      document.getElementById("valeur-depenses").textContent = formaterFCFA(donnees.depenses_jour);
+      document.getElementById("valeur-solde").textContent = formaterFCFA(donnees.solde_jour);
+      document.getElementById("nombre-alertes").textContent = donnees.nombre_alertes;
+
+      var listeAlertes = document.getElementById("liste-alertes");
+      listeAlertes.innerHTML = "";
+      if (donnees.alertes.length === 0) {
+        listeAlertes.innerHTML = '<p class="vide">Aucune alerte de stock pour le moment.</p>';
+      } else {
+        donnees.alertes.forEach(function (article) {
+          var ligne = document.createElement("div");
+          ligne.className = "ligne-liste";
+          ligne.innerHTML =
+            '<div><div class="principal"></div><div class="accessoire"></div></div>' +
+            '<div class="droite"></div>';
+          ligne.querySelector(".principal").textContent = article.nom;
+          ligne.querySelector(".accessoire").textContent = article.site_nom;
+          ligne.querySelector(".droite").textContent = article.quantite_stock + " restants";
+          listeAlertes.appendChild(ligne);
+        });
+      }
+    });
+  }
+
+  function chargerRapports() {
+    var chemin = "/api/rapports?periode=" + etat.periode + (etat.siteId ? "&site_id=" + etat.siteId : "");
+    return appelApi(chemin).then(function (donnees) {
+      document.getElementById("valeur-total-ventes").textContent = formaterFCFA(donnees.total_ventes_ttc);
+      document.getElementById("valeur-marge").textContent = donnees.nombre_ventes;
+
+      var listeProduits = document.getElementById("liste-produits");
+      listeProduits.innerHTML = "";
+      if (donnees.produits_plus_vendus.length === 0) {
+        listeProduits.innerHTML = '<p class="vide">Aucune vente sur cette période.</p>';
+      } else {
+        donnees.produits_plus_vendus.forEach(function (produit) {
+          var ligne = document.createElement("div");
+          ligne.className = "ligne-liste";
+          ligne.innerHTML = '<div class="principal"></div><div class="droite"></div>';
+          ligne.querySelector(".principal").textContent = produit.nom;
+          ligne.querySelector(".droite").textContent = produit.quantite_vendue + " vendus";
+          listeProduits.appendChild(ligne);
+        });
+      }
+    });
+  }
+
+  function chargerDonnees() {
+    document.getElementById("horodatage").textContent = "Mise à jour…";
+    Promise.all([chargerTableauDeBord(), chargerRapports()])
+      .then(function () {
+        document.getElementById("horodatage").textContent =
+          "Mis à jour à " + new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+      })
+      .catch(function (erreur) {
+        document.getElementById("horodatage").textContent = erreur.message;
+      });
+  }
+
+  function demarrerTableauDeBord() {
+    ecranConnexion.hidden = true;
+    ecranDashboard.hidden = false;
+    chargerSites().then(chargerDonnees);
+  }
+
+  if (etat.jeton) {
+    demarrerTableauDeBord();
+  }
+})();
+</script>
+</body>
+</html>

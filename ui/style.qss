@@ -1,0 +1,226 @@
+/*
+  Feuille de style de l'application — appliquée globalement (voir main.py).
+  Palette "atelier" validée : fond papier chaud (#EFE8D8), cartes papier
+  clair (#FFFDF6), acier pour la structure (#152C4D), ambre pour l'action
+  principale (#C1791A), rouille pour les alertes (#9C3D1F), mousse pour le
+  positif (#3F6B46) — cohérente avec l'écran de connexion et les documents
+  du projet.
+*/
+
+* {
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    font-size: 13px;
+    color: #211D16;
+}
+
+QWidget {
+    background-color: #EFE8D8;
+}
+
+/* Les étiquettes ne doivent jamais peindre leur propre fond : sinon elles
+   affichent un rectangle de la couleur ci-dessus par-dessus la carte ou
+   le motif qui les contient. */
+QLabel {
+    background: transparent;
+}
+
+/* ---------- Boutons ---------- */
+QPushButton {
+    background-color: #C1791A;
+    color: #FFFFFF;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-weight: 600;
+}
+QPushButton:hover {
+    background-color: #CE8527;
+}
+QPushButton:pressed {
+    background-color: #A8650F;
+}
+QPushButton:disabled {
+    background-color: #D8CFB7;
+    color: #6B6357;
+}
+
+/* Bouton secondaire (contour, sans fond plein) — voir setProperty("secondaire", True) */
+QPushButton[secondaire="true"] {
+    background-color: #FFFDF6;
+    color: #152C4D;
+    border: 1px solid #D8CFB7;
+}
+QPushButton[secondaire="true"]:hover {
+    background-color: #EFE8D8;
+}
+
+/* ---------- Champs de saisie ---------- */
+QLineEdit, QComboBox, QSpinBox, QDoubleSpinBox {
+    background-color: #EFE8D8;
+    border: 1px solid #D8CFB7;
+    border-radius: 6px;
+    padding: 6px 10px;
+    selection-background-color: #C1791A;
+}
+QLineEdit:focus, QComboBox:focus, QSpinBox:focus, QDoubleSpinBox:focus {
+    border: 1px solid #152C4D;
+}
+/* Champ verrouillé (ex : prix d'un article, réservé au responsable) —
+   doit se voir clairement, sinon on croit pouvoir le modifier. */
+QLineEdit:disabled, QComboBox:disabled, QSpinBox:disabled, QDoubleSpinBox:disabled {
+    background-color: #E7DFC9;
+    color: #6B6357;
+    border: 1px solid #D8CFB7;
+}
+
+/* ---------- Onglets ---------- */
+QTabWidget::pane {
+    border-top: 1px solid #D8CFB7;
+    background-color: #EFE8D8;
+}
+QTabBar::tab {
+    background-color: #E7DFC9;
+    color: #6B6357;
+    padding: 9px 20px;
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+    margin-right: 2px;
+}
+QTabBar::tab:selected {
+    background-color: #EFE8D8;
+    color: #211D16;
+    font-weight: 600;
+    border-bottom: 2px solid #C1791A;
+}
+QTabBar::tab:hover:!selected {
+    background-color: #ECE4D0;
+}
+
+/* ---------- Tableaux et listes ---------- */
+QTableWidget, QListWidget {
+    background-color: #FFFDF6;
+    border: 1px solid #D8CFB7;
+    border-radius: 6px;
+    gridline-color: #E7DFC9;
+}
+QHeaderView::section {
+    background-color: #E1E6EE;
+    color: #152C4D;
+    padding: 6px 8px;
+    border: none;
+    font-weight: 600;
+}
+QTableWidget::item:selected, QListWidget::item:selected {
+    background-color: #F2E0BE;
+    color: #211D16;
+}
+
+/* ---------- Rôles sémantiques (voir objectName sur les widgets) ---------- */
+QLabel#titreEcran {
+    font-size: 17px;
+    font-weight: 700;
+    color: #211D16;
+}
+QLabel#titreSection {
+    font-size: 13px;
+    font-weight: 700;
+    color: #152C4D;
+}
+QLabel#texteAttenue {
+    color: #6B6357;
+    font-size: 12px;
+}
+QLabel#totalMisEnValeur {
+    font-size: 17px;
+    font-weight: 700;
+    color: #211D16;
+}
+QFrame#carteTotaux {
+    background-color: #E7DFC9;
+    border-radius: 8px;
+    padding: 12px;
+}
+
+QDialog {
+    background-color: #EFE8D8;
+}
+
+/* Bouton "œil" de visibilité du mot de passe (tous les formulaires,
+   y compris l'écran de connexion) */
+QPushButton#boutonOeil {
+    background-color: #FFFDF6;
+    border: 1px solid #D8CFB7;
+    border-radius: 6px;
+    padding: 0;
+}
+QPushButton#boutonOeil:hover {
+    background-color: #ECE4D0;
+}
+QPushButton#boutonOeil:checked {
+    background-color: #F2E0BE;
+    border: 1px solid #C1791A;
+}
+
+/* ---------- Écran d'accueil et de connexion — modèle validé : fond
+   papier, motif d'outils en filigrane, badge boîte à outils, carte de
+   connexion avec pastilles décoratives ---------- */
+QWidget#ecranConnexion {
+    background-color: #EFE8D8;
+}
+
+QLabel#embleme {
+    background-color: #FFFDF6;
+    border: 1px solid #D8CFB7;
+    border-radius: 32px;
+}
+QLabel#titreEnseigne {
+    font-size: 26px;
+    font-weight: 700;
+    color: #211D16;
+    qproperty-alignment: AlignCenter;
+}
+
+QFrame#carteConnexion {
+    background-color: #FFFDF6;
+    border: 1px solid #D8CFB7;
+    border-radius: 4px;
+}
+QLabel#etiquetteChamp {
+    font-size: 11px;
+    font-weight: 700;
+    color: #6B6357;
+}
+QFrame#carteConnexion QLineEdit {
+    background-color: #EFE8D8;
+    border: 1px solid #D8CFB7;
+    color: #211D16;
+    selection-background-color: #C1791A;
+}
+QFrame#carteConnexion QLineEdit:focus {
+    border: 1px solid #152C4D;
+}
+QPushButton#boutonConnexionPrincipal {
+    background-color: #C1791A;
+    color: #FFFFFF;
+    padding: 12px 20px;
+    font-size: 14px;
+    border-radius: 3px;
+}
+QPushButton#boutonConnexionPrincipal:hover {
+    background-color: #CE8527;
+}
+QPushButton#boutonConnexionPrincipal:pressed {
+    background-color: #A8650F;
+}
+QLabel#messageErreurConnexion {
+    background-color: #F0DDD0;
+    color: #9C3D1F;
+    font-size: 12px;
+    font-weight: 500;
+    border-radius: 3px;
+    padding: 8px 10px;
+}
+QLabel#texteAideConnexion {
+    color: #6B6357;
+    font-size: 11px;
+}
